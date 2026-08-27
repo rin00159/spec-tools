@@ -90,7 +90,14 @@ async function main() {
 					await runIndexGen(process.cwd(), args[1], values.check || false);
 				} else if (subCommand === 'check') {
 					const { validateDocRefsInRepo } = await import('./commands/doc-ref/refScan.ts');
-					const { violations } = await validateDocRefsInRepo(process.cwd());
+					const { violations } = await validateDocRefsInRepo(process.cwd(), {
+						scanRoots: fullConfig.specCoverage?.scanRoots,
+						historicalPrefixes: fullConfig.docRef?.historicalPrefixes,
+						decisionDir: fullConfig.docRef?.decisionDir,
+						taskDir: fullConfig.docRef?.taskDir,
+						namespacePattern: fullConfig.docRef?.namespacePattern,
+						examplePatterns: fullConfig.docRef?.examplePatterns,
+					});
 					for (const v of violations) console.error(v);
 					if (violations.length > 0) process.exit(1);
 					console.log('doc-ref check: 0 violations');

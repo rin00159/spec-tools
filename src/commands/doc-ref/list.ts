@@ -15,7 +15,6 @@ import type { DocType } from './show.ts';
 
 // ファイル名に `_` を含む legacy が在る(036-v0_2-after-tasks.md)。
 const NUMBERED_FILE_RE = /^(\d{3})-[a-z0-9_-]+\.md$/;
-const STUB_RE = /\*\*移設先\*\*:\s*`([^`]+)`/;
 
 export interface DocEntry {
 	readonly owner: string;
@@ -35,8 +34,9 @@ function firstTitle(content: string): string {
 		.trim();
 }
 
-function firstState(content: string): string {
-	const m = content.match(/^\*\*状態\*\*:\s*(.+)$/m);
+function firstState(content: string, statePattern?: RegExp): string {
+	const re = statePattern ?? /^\*\*(?:状態|State)\*\*:\s*(.+)$/m;
+	const m = content.match(re);
 	if (!m?.[1]) {
 		return '—';
 	}
@@ -54,11 +54,19 @@ export function collectDocs(
 	packages: ReadonlyArray<PackageEntry>,
 	decisionDir: string = 'docs/decisions',
 	taskDir: string = 'docs/task',
+	startNumber: number = 200,
+	statePatternStr?: string,
+	stubPatternStr?: string,
 ): DocEntry[] {
 	const subDir = docType === 'decision' ? decisionDir : taskDir;
 	const entries: DocEntry[] = [];
 	// discoverPackages は realpath で畳むので、根の判定も realpath で揃える(macOS の /var → /private/var)。
 	const realRoot = realpathSync(repoRoot);
+
+	const stateRe = statePatternStr ? new RegExp(statePatternStr, 'm') : undefined;
+	const stubRe = stubPatternStr
+		? new RegExp(stubPatternStr)
+		: /\*\*(?:移設先|Moved To)\*\*:\s*`([^`]+)`/;
 
 	for (const pkg of packages) {
 		const dir = join(pkg.dir, subDir);
@@ -77,18 +85,18 @@ export function collectDocs(
 			const num = m[1];
 			const filePath = join(dir, name);
 			const content = readFileSync(filePath, 'utf8');
-			const isStub = STUB_RE.test(content);
+			const isStub = stubRe.test(content);
 			if (isStub) {
 				// 実体は移設先の package 側で拾う
 				continue;
 			}
-			const bare = isRoot && Number(num) < 200; // Legacy limitation is hardcoded to 200 for now or maybe we don't care
+			const bare = isRoot && Number(num) < startNumber;
 			entries.push({
 				owner: pkg.name,
 				reference: bare ? num : `${pkg.name}:${num}`,
 				number: num,
 				title: firstTitle(content),
-				state: firstState(content),
+				state: firstState(content, stateRe),
 				filePath,
 				isStub,
 			});
@@ -164,6 +172,15 @@ export async function runList(
 	const decisionDir = fullConfig.docRef?.decisionDir ?? 'docs/decisions';
 	const taskDir = fullConfig.docRef?.taskDir ?? 'docs/task';
 
-	const entries = collectDocs(repoRoot, docType, target, decisionDir, taskDir);
+	const entries = collectDocs(
+		repoRoot,
+		docType,
+		target,
+		decisionDir,
+		taskDir,
+		fullConfig.scaffold?.startNumber,
+		fullConfig.docRef?.statePattern,
+		fullConfig.docRef?.stubPattern,
+	);
 	console.log(render(repoRoot, docType, entries, taskDir));
 }

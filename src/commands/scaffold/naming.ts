@@ -5,10 +5,10 @@
 // v0.2 Phase 12 まで kata2-verify skill が存在しないパスを指していた)。
 // 規則をここへ寄せ、コマンドが正しい名前でファイルを作る形にする(docs/decisions/089)。
 
-import { formatImplPoint, type ImplPoint } from '../spec-coverage/implPoint.ts';
+import type { ImplPoint } from '../spec-coverage/implPoint.ts';
 
-const NUMBERED_FILE_RE = /^(\d{3})-[a-z0-9-]+\.md$/;
-export const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const NUMBERED_FILE_RE = /^(\d{3})-[a-z0-9_-]+\.md$/;
+export const SLUG_RE = /^[a-z0-9_]+(?:-[a-z0-9_]+)*$/;
 
 /**
  * 既存の**最大番号 +1** (ただし最低 200) を返す。ファイル数 +1 は使わない(欠番があると重複する。
@@ -31,20 +31,40 @@ export function numberedFileName(numberValue: number, slug: string): string {
 	return `${String(numberValue).padStart(3, '0')}-${slug}.md`;
 }
 
+export interface ScaffoldPathsConfig {
+	planDirTemplate?: string;
+	planFileTemplate?: string;
+	acceptanceFileTemplate?: string;
+}
+
 /** 版ディレクトリ(`docs/plan/0_2`)。`impl` の major/minor がそのまま版である。 */
-export function planDirFor(point: ImplPoint): string {
-	return `docs/plan/${point.major}_${point.minor}`;
+export function planDirFor(point: ImplPoint, config?: ScaffoldPathsConfig): string {
+	const template = config?.planDirTemplate ?? 'docs/plan/{{major}}_{{minor}}';
+	return template
+		.replace(/\{\{major\}\}/g, String(point.major))
+		.replace(/\{\{minor\}\}/g, String(point.minor))
+		.replace(/\{\{phase\}\}/g, String(point.phase));
 }
 
 /** その Phase の計画の正本(`docs/plan/0_2/phase24.md`)。 */
-export function planFileFor(point: ImplPoint): string {
-	return `${planDirFor(point)}/phase${point.phase}.md`;
+export function planFileFor(point: ImplPoint, config?: ScaffoldPathsConfig): string {
+	const template = config?.planFileTemplate ?? '{{planDir}}/phase{{phase}}.md';
+	const planDir = planDirFor(point, config);
+	return template
+		.replace(/\{\{planDir\}\}/g, planDir)
+		.replace(/\{\{major\}\}/g, String(point.major))
+		.replace(/\{\{minor\}\}/g, String(point.minor))
+		.replace(/\{\{phase\}\}/g, String(point.phase));
 }
 
 /** 検収証跡(`docs/acceptance/phase-v0_2-24.md`)。 */
-export function acceptanceFileFor(point: ImplPoint): string {
-	const version = formatImplPoint(point).replace(/_\d+$/, '');
-	return `docs/acceptance/phase-${version}-${point.phase}.md`;
+export function acceptanceFileFor(point: ImplPoint, config?: ScaffoldPathsConfig): string {
+	const template =
+		config?.acceptanceFileTemplate ?? 'docs/acceptance/phase-v{{major}}_{{minor}}-{{phase}}.md';
+	return template
+		.replace(/\{\{major\}\}/g, String(point.major))
+		.replace(/\{\{minor\}\}/g, String(point.minor))
+		.replace(/\{\{phase\}\}/g, String(point.phase));
 }
 
 export function decisionTemplate(numberValue: number, title: string, today: string): string {
@@ -78,12 +98,16 @@ export function decisionTemplate(numberValue: number, title: string, today: stri
 `;
 }
 
-export function acceptanceTemplate(point: ImplPoint, today: string): string {
+export function acceptanceTemplate(
+	point: ImplPoint,
+	today: string,
+	config?: ScaffoldPathsConfig,
+): string {
 	const label = `v${point.major}.${point.minor} Phase ${point.phase}`;
 	return `# ${label} 検収証跡
 
 **日時**: ${today}
-**正本**: \`${planFileFor(point)}\`
+**正本**: \`${planFileFor(point, config)}\`
 **判断**: 
 
 ---

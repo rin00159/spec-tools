@@ -1,95 +1,79 @@
 # 設定ファイル (Configuration)
 
-`spec-tools` は、リポジトリのルートに配置された設定ファイル（`spec-tools.config.ts`, `spec-tools.config.js`, または `spec-tools.config.mjs`）から設定を読み込みます。
+`spec-tools` は、リポジトリのルートに配置された設定ファイル（`spec-tools.config.json`）から設定を読み込みます。
+※ JSON ファイルのため、正規表現文字列を記述する際はバックスラッシュを二重にエスケープ（例: `\\b`）する必要があります。
 
 以下は、利用可能なすべての設定項目を含む設定例です。
 
-```typescript
-export default {
-  // --- 仕様カバレッジ (spec:coverage) 関連 ---
-  specCoverage: {
-    // 条項IDが必須となるルートディレクトリのリスト
-    conformanceRoots: ['packages', 'examples'],
-    
-    // コードやテスト内の条項IDを走査する対象のルートディレクトリ
-    scanRoots: ['packages', 'tools', 'examples', 'apps'],
-    
-    // ソースコードとして走査する拡張子
-    sourceExtensions: ['.ts', '.tsx', '.js', '.mjs', '.cjs', '.json'],
-    
-    // テストファイルとみなす接尾辞
-    testSuffixes: ['.test.ts'],
-    
-    // テスト名から ID 等を抽出する際の正規表現
-    testNamePatterns: [
-      '\\b(?:it|test)(?:\\.\\w+)?\\(\\s*(?:"((?:[^"\\\\]|\\\\.)*)"|\'((?:[^\'\\\\]|\\\\.)*)\')'
+```json
+{
+  "specRoots": ["spec", "packages"],
+  
+  "checkCurrentTask": {
+    "file": "docs/task/README.md",
+    "maxLines": 30,
+    "headings": ["現在の作業", "次にやること"]
+  },
+
+  "checkPlanLayout": {
+    "planDir": "docs/plan",
+    "scanRoots": ["docs", "packages"],
+    "rootFiles": ["README.md"]
+  },
+
+  "specCoverage": {
+    "conformanceRoots": ["packages", "examples"],
+    "scanRoots": ["packages", "tools", "examples", "apps"],
+    "sourceExtensions": [".ts", ".tsx", ".js", ".mjs", ".cjs", ".json"],
+    "testSuffixes": [".test.ts"],
+    "testNamePatterns": [
+      "\\b(?:it|test)(?:\\.\\w+)?\\(\\s*(?:\"((?:[^\"]|\\\\.)*)\"|'((?:[^']|\\\\.)*)')"
+    ]
+  },
+
+  "docRef": {
+    "decisionDir": "docs/decisions",
+    "taskDir": "docs/task",
+    "namespacePattern": "(@kata2\\/[a-z0-9_-]+|kata2)",
+    "historicalPrefixes": [
+      "docs/acceptance/",
+      "docs/plan/0_1/done/",
+      "docs/history/"
     ],
-    
-    // 条項仕様ファイルが含まれるルート（省略時は動的に発見される）
-    specRoots: undefined,
-  },
-
-  // --- 文書参照 (doc-ref) 関連 ---
-  docRef: {
-    // decision ドキュメントが格納されるディレクトリ
-    decisionDir: 'docs/decisions',
-    
-    // task ドキュメントが格納されるディレクトリ
-    taskDir: 'docs/task',
-    
-    // namespaced 参照の抽出・解決用パターン
-    namespacePattern: '(@kata2\\/[a-z0-9_-]+|kata2)',
-    
-    // 参照チェックを無視する過去ドキュメントの接頭辞
-    historicalPrefixes: [
-      'docs/acceptance/',
-      'docs/plan/0_1/done/',
-      'docs/history/'
+    "examplePatterns": [
+      "(?:例|例:|e\\.g\\.|Example|使い方:)\\s*[`(]?@kata2\\/"
     ],
+    "indexHeader": "docs/custom-index-header.md",
+    "statePattern": "^\\*\\*(?:状態|State)\\*\\*:\\s*(.+)$",
+    "stubPattern": "\\*\\*(?:移設先|Moved To)\\*\\*:\\s*`([^`]+)`"
   },
 
-  // --- 雛形生成 (scaffold) 関連 ---
-  scaffold: {
-    // テンプレート(decision.md 等)が置かれている上書き用ディレクトリのパス
-    templateDir: 'templates',
-    
-    // 採番する連番の最低開始番号
-    startNumber: 200,
+  "scaffold": {
+    "templateDir": "templates",
+    "startNumber": 200,
+    "planDirTemplate": "docs/plan/{{major}}_{{minor}}",
+    "planFileTemplate": "{{planDir}}/phase{{phase}}.md",
+    "acceptanceFileTemplate": "docs/acceptance/phase-v{{major}}_{{minor}}-{{phase}}.md"
   },
 
-  // --- spec 索引 (spec-index) 関連 ---
-  specIndex: {
-    // 索引のヘッダとして出力する文字列、または .md ファイルへの相対パス
-    header: 'docs/custom-index-header.md',
+  "specIndex": {
+    "header": "docs/custom-spec-index-header.md"
   },
 
-  // --- 条項フォーマット (Clause Format) 関連 ---
-  clauseFormat: {
-    // 条項IDにマッチする正規表現
-    idPattern: '(K-[A-Z0-9]+(?:-[A-Z0-9]+)*)',
-    
-    // 条項の直後に続く属性(status, since, kind, impl)を抽出する正規表現
-    attrPattern: '\\*\\*属性\\*\\*:\\s*`status:\\s*([^`]+)`(?:,\\s*`since:\\s*([^`]+)`)?(?:,\\s*`kind:\\s*([^`]+)`)?(?:,\\s*`impl:\\s*([^`]+)`)?',
-    
-    // "規範"（Must要件）として扱う kind の文字列リスト
-    normativeKinds: ['規範'],
-    
-    // "アクティブ" として扱う status の文字列リスト
-    activeStatuses: ['active'],
+  "clauseFormat": {
+    "idPattern": "(K-[A-Z0-9]+(?:-[A-Z0-9]+)*)",
+    "headingPattern": "^##\\s+(?<id>(?:K-[A-Z0-9]+(?:-[A-Z0-9]+)*))\\s+(?<title>.+)$",
+    "attrPattern": "\\*\\*属性\\*\\*:\\s*`status:\\s*([^`]+)`(?:,\\s*`since:\\s*([^`]+)`)?(?:,\\s*`kind:\\s*([^`]+)`)?(?:,\\s*`impl:\\s*([^`]+)`)?",
+    "normativeKinds": ["規範"],
+    "activeStatuses": ["active"]
   },
 
-  // --- ミラーリング (check-mirror) 関連 ---
-  checkMirror: {
-    // 比較するルートの組 (2つのディレクトリ名)
-    mirrorRoots: ['.claude', '.agents'],
-    
-    // 比較対象とするサブツリー（ディレクトリ）のリスト
-    mirroredSubtrees: ['skills'],
-    
-    // ディレクトリ外で比較するファイルのペアリスト
-    mirroredFilePairs: [
-      ['CLAUDE.md', 'AGENTS.md']
-    ],
+  "checkMirror": {
+    "mirrorRoots": [".claude", ".agents"],
+    "mirroredSubtrees": ["skills"],
+    "mirroredFilePairs": [
+      ["CLAUDE.md", "AGENTS.md"]
+    ]
   }
-};
+}
 ```

@@ -8,7 +8,8 @@
 // 番号とファイル名を人(や AI)が数えないための入口である(docs/decisions/089)。
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { dirname, join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { discoverPackages } from '../doc-ref/closure.ts';
 import { suggestClosest } from '../doc-ref/show.ts';
 import { parseImplPoint } from '../spec-coverage/implPoint.ts';
@@ -52,6 +53,17 @@ function currentPoint(repoRoot: string) {
 	return point;
 }
 
+function getPackageRoot(startDir: string): string {
+	let current = startDir;
+	while (current !== dirname(current)) {
+		if (existsSync(join(current, 'package.json'))) {
+			return current;
+		}
+		current = dirname(current);
+	}
+	return startDir;
+}
+
 async function resolveTemplate(
 	repoRoot: string,
 	templateDir: string | undefined,
@@ -64,7 +76,9 @@ async function resolveTemplate(
 			return readFileSync(customPath, 'utf8');
 		}
 	}
-	const defaultPath = join(__dirname, '../../../templates', templateName);
+	const fileDir = dirname(fileURLToPath(import.meta.url));
+	const pkgRoot = getPackageRoot(fileDir);
+	const defaultPath = join(pkgRoot, 'templates', templateName);
 	if (existsSync(defaultPath)) {
 		return readFileSync(defaultPath, 'utf8');
 	}
@@ -185,18 +199,24 @@ async function cmdTask(
 
 async function cmdAcceptance(
 	repoRoot: string,
-	scaffoldConfig?: { templateDir?: string; startNumber?: number },
+	scaffoldConfig?: {
+		templateDir?: string;
+		startNumber?: number;
+		planDirTemplate?: string;
+		planFileTemplate?: string;
+		acceptanceFileTemplate?: string;
+	},
 ): Promise<void> {
 	const point = currentPoint(repoRoot);
-	const relPath = acceptanceFileFor(point);
+	const relPath = acceptanceFileFor(point, scaffoldConfig);
 	const path = join(repoRoot, relPath);
-	const planFile = planFileFor(point);
+	const planFile = planFileFor(point, scaffoldConfig);
 
 	const template = await resolveTemplate(
 		repoRoot,
 		scaffoldConfig?.templateDir,
 		'acceptance.md',
-		() => acceptanceTemplate(point, today()),
+		() => acceptanceTemplate(point, today(), scaffoldConfig),
 	);
 	const content = template
 		.replace(/\{\{major\}\}/g, String(point.major))

@@ -73,6 +73,7 @@ export async function resolveDocRef(
 	packages?: ReadonlyArray<PackageEntry>,
 	decisionDir: string = 'docs/decisions',
 	taskDir: string = 'docs/task',
+	startNumber: number = 200,
 ): Promise<ResolvedDoc> {
 	const subDir = docType === 'decision' ? decisionDir : taskDir;
 	const pkgs = packages ?? (await discoverPackages(repoRoot));
@@ -80,9 +81,9 @@ export async function resolveDocRef(
 	// 1. bare 番号 (例: "105", "063")
 	if (/^\d+$/.test(ref)) {
 		const num = Number(ref);
-		if (num >= 200) {
+		if (num >= startNumber) {
 			throw new Error(
-				`References >= 200 must be namespaced (e.g. @myorg/core:${ref} or root:${ref})`,
+				`References >= ${startNumber} must be namespaced (e.g. @myorg/core:${ref} or root:${ref})`,
 			);
 		}
 
@@ -186,7 +187,15 @@ export async function runShow(
 
 	for (const ref of refs) {
 		try {
-			const resolved = await resolveDocRef(repoRoot, docType, ref, pkgs, decisionDir, taskDir);
+			const resolved = await resolveDocRef(
+				repoRoot,
+				docType,
+				ref,
+				pkgs,
+				decisionDir,
+				taskDir,
+				fullConfig.scaffold?.startNumber,
+			);
 			const relPath = relative(repoRoot, resolved.filePath);
 			console.log(`# ${resolved.reference} (${relPath})\n`);
 			console.log(resolved.content.trimEnd());

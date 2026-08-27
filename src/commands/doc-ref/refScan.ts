@@ -30,13 +30,11 @@ export interface ExtractedRef {
 }
 
 /** 例示や文法説明のパターン(実在検査の対象外) */
-function isExampleLine(line: string): boolean {
-	return (
-		/(?:例|例:|e\.g\.|Example|使い方:)\s*[`(]?@kata2\//.test(line) ||
-		/`decision:show @kata2\//.test(line) ||
-		/`task:show @kata2\//.test(line) ||
-		/\(`?@kata2\/targetlib-schemaui:200`?\)/.test(line)
-	);
+function isExampleLine(line: string, examplePatterns?: readonly RegExp[]): boolean {
+	if (examplePatterns) {
+		return examplePatterns.some((re) => re.test(line));
+	}
+	return false;
 }
 
 export function extractDocRefs(
@@ -44,6 +42,7 @@ export function extractDocRefs(
 	decisionDir: string,
 	taskDir: string,
 	namespacePattern: string,
+	examplePatterns?: readonly RegExp[],
 ): ExtractedRef[] {
 	const results: ExtractedRef[] = [];
 	const seen = new Set<string>();
@@ -55,11 +54,11 @@ export function extractDocRefs(
 	const taskEscaped = taskDir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 	const decisionPathRe = new RegExp(
-		`(?:^|[^\\w./-])(?:(?:[\\w-]+\\/)*?${decisionBase}\\/|${decisionEscaped}\\/)(\\d{3})(?:-[a-z0-9-]+(?:\\.md)?)?(?=$|[^\\w./-])`,
+		`(?:^|[^\\w./-])(?:(?:[\\w-]+\\/)*?${decisionBase}\\/|${decisionEscaped}\\/)(\\d{3})(?:-[a-z0-9_-]+(?:\\.md)?)?(?=$|[^\\w./-])`,
 		'g',
 	);
 	const taskPathRe = new RegExp(
-		`(?:^|[^\\w./-])(?:(?:[\\w-]+\\/)*?${taskBase}\\/|${taskEscaped}\\/)(\\d{3})(?:-[a-z0-9-]+(?:\\.md)?)?(?=$|[^\\w./-])`,
+		`(?:^|[^\\w./-])(?:(?:[\\w-]+\\/)*?${taskBase}\\/|${taskEscaped}\\/)(\\d{3})(?:-[a-z0-9_-]+(?:\\.md)?)?(?=$|[^\\w./-])`,
 		'g',
 	);
 	const namespacedRefRe = new RegExp(
@@ -69,7 +68,7 @@ export function extractDocRefs(
 
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i];
-		if (line === undefined || isExampleLine(line)) {
+		if (line === undefined || isExampleLine(line, examplePatterns)) {
 			continue;
 		}
 		const lineNo = i + 1;
@@ -161,6 +160,7 @@ export async function validateDocRefsInRepo(
 		readonly taskDir?: string;
 		readonly namespacePattern?: string;
 		readonly historicalPrefixes?: readonly string[];
+		readonly examplePatterns?: readonly string[];
 	},
 ): Promise<ValidationResult> {
 	const scanRoots = options?.scanRoots ?? SCAN_ROOTS;
@@ -170,6 +170,7 @@ export async function validateDocRefsInRepo(
 	const taskDir = options?.taskDir ?? 'docs/task';
 	const namespacePattern = options?.namespacePattern ?? '(@kata2\\/[a-z0-9_-]+|kata2)';
 	const historicalPrefixes = options?.historicalPrefixes ?? HISTORICAL_PREFIXES;
+	const exampleRegexes = options?.examplePatterns?.map((p) => new RegExp(p)) ?? [];
 
 	const markdownFiles: string[] = [
 		...scanRoots.flatMap((root) => walkMarkdownFiles(join(repoRoot, root))),
@@ -212,7 +213,7 @@ export async function validateDocRefsInRepo(
 		}
 
 		const text = readFileSync(filePath, 'utf8');
-		const refs = extractDocRefs(text, decisionDir, taskDir, namespacePattern);
+		const refs = extractDocRefs(text, decisionDir, taskDir, namespacePattern, exampleRegexes);
 		totalRefs += refs.length;
 
 		for (const refItem of refs) {

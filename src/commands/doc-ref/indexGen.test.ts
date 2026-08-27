@@ -49,7 +49,7 @@ describe('planIndexes', () => {
 		);
 
 		const packages = await discoverPackages(repo);
-		const { writes, removals } = planIndexes(repo, 'task', packages);
+		const { writes, removals } = planIndexes(repo, 'task', packages, {});
 
 		expect(removals).toEqual([]);
 		const paths = writes.map((w) => relative(repo, w.path)).sort();
@@ -76,7 +76,7 @@ describe('planIndexes', () => {
 		await writeFile(join(repo, 'docs', 'task', 'INDEX.md'), '# task 索引 — kata2(1件)\n', 'utf8');
 
 		const packages = await discoverPackages(repo);
-		const { writes, removals } = planIndexes(repo, 'task', packages);
+		const { writes, removals } = planIndexes(repo, 'task', packages, {});
 
 		expect(writes).toEqual([]);
 		expect(removals.map((p) => relative(repo, p))).toEqual([join('docs', 'task', 'INDEX.md')]);

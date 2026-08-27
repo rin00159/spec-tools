@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 
 export interface ClauseFormatConfig {
 	/** Regex string for matching a clause ID in plain text */
@@ -46,12 +46,19 @@ export interface SpecToolsConfig {
 		taskDir?: string;
 		namespacePattern?: string;
 		historicalPrefixes?: string[];
+		examplePatterns?: string[];
+		indexHeader?: string;
+		statePattern?: string;
+		stubPattern?: string;
 	};
 	scaffold?: {
 		/** Directory containing custom markdown templates (decision.md, task.md, acceptance.md) */
 		templateDir?: string;
 		/** The starting number for new decisions/tasks (defaults to 200 to freeze 1-199 for legacy) */
 		startNumber?: number;
+		planDirTemplate?: string;
+		planFileTemplate?: string;
+		acceptanceFileTemplate?: string;
 	};
 	specIndex?: {
 		/** Custom header text or file path for the generated INDEX.md */
@@ -73,40 +80,31 @@ const KNOWN_TOPLEVEL_KEYS = new Set([
 ]);
 
 export function loadConfig(cwd: string = process.cwd()): SpecToolsConfig {
-	let current = cwd;
-	while (true) {
-		const configPath = join(current, 'spec-tools.config.json');
-		if (existsSync(configPath)) {
-			try {
-				const content = readFileSync(configPath, 'utf8');
-				const parsed = JSON.parse(content);
+	const configPath = join(cwd, 'spec-tools.config.json');
+	if (existsSync(configPath)) {
+		try {
+			const content = readFileSync(configPath, 'utf8');
+			const parsed = JSON.parse(content);
 
-				if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-					console.error(`Invalid config at ${configPath}: Root must be an object`);
-					process.exit(1);
-				}
-
-				for (const key of Object.keys(parsed)) {
-					if (!KNOWN_TOPLEVEL_KEYS.has(key)) {
-						console.error(`Invalid config at ${configPath}: Unknown top-level key \`${key}\``);
-						process.exit(1);
-					}
-				}
-
-				return parsed as SpecToolsConfig;
-			} catch (e) {
-				console.error(
-					`Failed to parse config at ${configPath}: ${e instanceof Error ? e.message : String(e)}`,
-				);
-				process.exit(1);
+			if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+				throw new Error(`Invalid config at ${configPath}: Root must be an object`);
 			}
+
+			for (const key of Object.keys(parsed)) {
+				if (!KNOWN_TOPLEVEL_KEYS.has(key)) {
+					throw new Error(`Invalid config at ${configPath}: Unknown top-level key \`${key}\``);
+				}
+			}
+
+			return parsed as SpecToolsConfig;
+		} catch (e) {
+			if (e instanceof Error && e.message.startsWith('Invalid config')) {
+				throw e;
+			}
+			throw new Error(
+				`Failed to parse config at ${configPath}: ${e instanceof Error ? e.message : String(e)}`,
+			);
 		}
-		const parent = dirname(current);
-		if (parent === current) {
-			break;
-		}
-		current = parent;
 	}
-	// Return empty config if not found. (Note: loadConfig will stop at the first spec-tools.config.json found, without merging parent configs.)
 	return {};
 }
