@@ -52,14 +52,16 @@ export function collectDocs(
 	repoRoot: string,
 	docType: DocType,
 	packages: ReadonlyArray<PackageEntry>,
+	decisionDir: string = 'docs/decisions',
+	taskDir: string = 'docs/task',
 ): DocEntry[] {
-	const subDir = docType === 'decision' ? 'decisions' : 'task';
+	const subDir = docType === 'decision' ? decisionDir : taskDir;
 	const entries: DocEntry[] = [];
 	// discoverPackages は realpath で畳むので、根の判定も realpath で揃える(macOS の /var → /private/var)。
 	const realRoot = realpathSync(repoRoot);
 
 	for (const pkg of packages) {
-		const dir = join(pkg.dir, 'docs', subDir);
+		const dir = join(pkg.dir, subDir);
 		let names: string[];
 		try {
 			names = readdirSync(dir);
@@ -80,7 +82,7 @@ export function collectDocs(
 				// 実体は移設先の package 側で拾う
 				continue;
 			}
-			const bare = isRoot && Number(num) < 200;
+			const bare = isRoot && Number(num) < 200; // Legacy limitation is hardcoded to 200 for now or maybe we don't care
 			entries.push({
 				owner: pkg.name,
 				reference: bare ? num : `${pkg.name}:${num}`,
@@ -96,7 +98,7 @@ export function collectDocs(
 	return entries;
 }
 
-function render(repoRoot: string, docType: DocType, entries: readonly DocEntry[]): string {
+function render(repoRoot: string, docType: DocType, entries: readonly DocEntry[], taskDir: string = 'docs/task'): string {
 	const byOwner = new Map<string, DocEntry[]>();
 	for (const e of entries) {
 		const list = byOwner.get(e.owner) ?? [];
@@ -130,7 +132,7 @@ function render(repoRoot: string, docType: DocType, entries: readonly DocEntry[]
 	lines.push(
 		`本文を読むのは \`pnpm ${docType}:show <参照>\`。`,
 		docType === 'task'
-			? '着手順の判断は docs/task/README.md の表が持つ(docs/decisions/109 決定8)。'
+			? `着手順の判断は ${taskDir}/README.md の表が持つ(docs/decisions/109 決定8)。`
 			: '',
 	);
 	return lines.filter((l) => l !== undefined).join('\n');
@@ -154,7 +156,11 @@ export async function runList(
 		process.exitCode = 1;
 		return;
 	}
+	
+	const fullConfig = (await import('../../config.ts')).loadConfig(repoRoot);
+	const decisionDir = fullConfig.docRef?.decisionDir ?? 'docs/decisions';
+	const taskDir = fullConfig.docRef?.taskDir ?? 'docs/task';
 
-	const entries = collectDocs(repoRoot, docType, target);
-	console.log(render(repoRoot, docType, entries));
+	const entries = collectDocs(repoRoot, docType, target, decisionDir, taskDir);
+	console.log(render(repoRoot, docType, entries, taskDir));
 }

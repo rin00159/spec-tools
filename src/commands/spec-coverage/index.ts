@@ -19,6 +19,18 @@ export async function runSpecCoverage(
 	const config = fullConfig.specCoverage || {};
 	const conformanceRoots = config.conformanceRoots || ['packages', 'examples'];
 	const scanRoots = config.scanRoots || ['packages', 'tools', 'examples', 'apps'];
+	const sourceExtensions = config.sourceExtensions || [
+		'.ts',
+		'.tsx',
+		'.js',
+		'.mjs',
+		'.cjs',
+		'.json',
+	];
+	const testSuffixes = config.testSuffixes || ['.test.ts'];
+	const testNamePatterns = config.testNamePatterns || [
+		'\\b(?:it|test)(?:\\.\\w+)?\\(\\s*(?:"((?:[^"\\\\]|\\\\.)*)"|\'((?:[^\'\\\\]|\\\\.)*)\')',
+	];
 	const idPattern = fullConfig.clauseFormat?.idPattern ?? DEFAULT_CLAUSE_ID_PATTERN;
 
 	function requiresLeadingId(file: string): boolean {
@@ -35,7 +47,7 @@ export async function runSpecCoverage(
 		...clause,
 		file: relative(repoRoot, clause.file),
 	}));
-	const testEntries = await scanTestNames(scanRoots, idPattern);
+	const testEntries = await scanTestNames(scanRoots, idPattern, testSuffixes, testNamePatterns);
 	const knownIds = new Set(clauses.map((c) => c.id));
 
 	const idLessTests = testEntries.filter(
@@ -48,7 +60,7 @@ export async function runSpecCoverage(
 			.map((id) => ({ file: entry.file, name: entry.name, id })),
 	);
 
-	const codeScanResult = await scanSourceCodeRefs(scanRoots, knownIds, idPattern);
+	const codeScanResult = await scanSourceCodeRefs(scanRoots, knownIds, idPattern, sourceExtensions);
 	const unknownRefsInSource = codeScanResult.unknownRefs.filter(
 		(ref) => !unknownRefsInTests.some((t) => t.file === ref.file && t.id === ref.id),
 	);

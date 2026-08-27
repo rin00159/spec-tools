@@ -71,8 +71,10 @@ export async function resolveDocRef(
 	docType: DocType,
 	ref: string,
 	packages?: ReadonlyArray<PackageEntry>,
+	decisionDir: string = 'docs/decisions',
+	taskDir: string = 'docs/task',
 ): Promise<ResolvedDoc> {
-	const subDir = docType === 'decision' ? 'decisions' : 'task';
+	const subDir = docType === 'decision' ? decisionDir : taskDir;
 	const pkgs = packages ?? (await discoverPackages(repoRoot));
 
 	// 1. bare 番号 (例: "105", "063")
@@ -84,7 +86,7 @@ export async function resolveDocRef(
 			);
 		}
 
-		const rootDir = join(repoRoot, 'docs', subDir);
+		const rootDir = join(repoRoot, subDir);
 		const filePath = await findNumberedFile(rootDir, num);
 		if (!filePath) {
 			const existing = await listNumberedFiles(rootDir);
@@ -98,7 +100,7 @@ export async function resolveDocRef(
 		if (stubTarget) {
 			// stub の場合は移設先を解決して表示
 			if (stubTarget.includes(':')) {
-				return await resolveDocRef(repoRoot, docType, stubTarget, pkgs);
+				return await resolveDocRef(repoRoot, docType, stubTarget, pkgs, decisionDir, taskDir);
 			}
 			const targetPath = join(repoRoot, stubTarget);
 			const targetContent = await readFile(targetPath, 'utf8');
@@ -135,7 +137,7 @@ export async function resolveDocRef(
 			throw new Error(`package が見つからない: ${pkgName}${hint}`);
 		}
 
-		const docDir = join(pkgEntry.dir, 'docs', subDir);
+		const docDir = join(pkgEntry.dir, subDir);
 		const filePath = await findNumberedFile(docDir, num);
 		if (!filePath) {
 			const existing = await listNumberedFiles(docDir);
@@ -177,10 +179,14 @@ export async function runShow(
 
 	let missing = false;
 	const pkgs = await discoverPackages(repoRoot);
+	
+	const fullConfig = (await import('../../config.ts')).loadConfig(repoRoot);
+	const decisionDir = fullConfig.docRef?.decisionDir ?? 'docs/decisions';
+	const taskDir = fullConfig.docRef?.taskDir ?? 'docs/task';
 
 	for (const ref of refs) {
 		try {
-			const resolved = await resolveDocRef(repoRoot, docType, ref, pkgs);
+			const resolved = await resolveDocRef(repoRoot, docType, ref, pkgs, decisionDir, taskDir);
 			const relPath = relative(repoRoot, resolved.filePath);
 			console.log(`# ${resolved.reference} (${relPath})\n`);
 			console.log(resolved.content.trimEnd());

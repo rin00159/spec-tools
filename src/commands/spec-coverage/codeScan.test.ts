@@ -53,6 +53,7 @@ describe('codeScan', () => {
 			['fixtures/dangling-ref'],
 			known,
 			DEFAULT_CLAUSE_ID_PATTERN,
+			['.ts'],
 		);
 		expect(res.unknownRefs).toEqual([
 			{

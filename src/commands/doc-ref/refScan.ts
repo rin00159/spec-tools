@@ -45,13 +45,33 @@ function isExampleLine(line: string): boolean {
 	);
 }
 
-/**
- * markdown テキストから decision / task / namespaced の参照を抽出する(重複は行単位で畳む)。
- */
-export function extractDocRefs(text: string): ExtractedRef[] {
+export function extractDocRefs(
+	text: string,
+	decisionDir: string,
+	taskDir: string,
+	namespacePattern: string,
+): ExtractedRef[] {
 	const results: ExtractedRef[] = [];
 	const seen = new Set<string>();
 	const lines = text.split('\n');
+	
+	const decisionBase = decisionDir.split('/').pop() || 'decisions';
+	const taskBase = taskDir.split('/').pop() || 'task';
+	const decisionEscaped = decisionDir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+	const taskEscaped = taskDir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+	
+	const decisionPathRe = new RegExp(
+		`(?:^|[^\\w./-])(?:(?:[\\w-]+\\/)*?${decisionBase}\\/|${decisionEscaped}\\/)(\\d{3})(?:-[a-z0-9-]+(?:\\.md)?)?(?=$|[^\\w./-])`,
+		'g',
+	);
+	const taskPathRe = new RegExp(
+		`(?:^|[^\\w./-])(?:(?:[\\w-]+\\/)*?${taskBase}\\/|${taskEscaped}\\/)(\\d{3})(?:-[a-z0-9-]+(?:\\.md)?)?(?=$|[^\\w./-])`,
+		'g',
+	);
+	const namespacedRefRe = new RegExp(
+		`(?:^|[^\\w./-])${namespacePattern}:(\\d{3})(?=$|[^\\w./-])`,
+		'g',
+	);
 
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i];
@@ -60,7 +80,7 @@ export function extractDocRefs(text: string): ExtractedRef[] {
 		}
 		const lineNo = i + 1;
 
-		for (const match of line.matchAll(DECISION_PATH_RE)) {
+		for (const match of line.matchAll(decisionPathRe)) {
 			const num = match[1];
 			if (!num) continue;
 			const key = `decision:${num}`;
@@ -75,7 +95,7 @@ export function extractDocRefs(text: string): ExtractedRef[] {
 			}
 		}
 
-		for (const match of line.matchAll(TASK_PATH_RE)) {
+		for (const match of line.matchAll(taskPathRe)) {
 			const num = match[1];
 			if (!num) continue;
 			const key = `task:${num}`;
@@ -90,7 +110,7 @@ export function extractDocRefs(text: string): ExtractedRef[] {
 			}
 		}
 
-		for (const match of line.matchAll(NAMESPACED_REF_RE)) {
+		for (const match of line.matchAll(namespacedRefRe)) {
 			const pkgName = match[1];
 			const numStr = match[2];
 			if (!pkgName || !numStr) continue;
@@ -143,11 +163,19 @@ export async function validateDocRefsInRepo(
 		readonly scanRoots?: readonly string[];
 		readonly rootFiles?: readonly string[];
 		readonly packages?: ReadonlyArray<PackageEntry>;
+		readonly decisionDir?: string;
+		readonly taskDir?: string;
+		readonly namespacePattern?: string;
+		readonly historicalPrefixes?: readonly string[];
 	},
 ): Promise<ValidationResult> {
 	const scanRoots = options?.scanRoots ?? SCAN_ROOTS;
 	const rootFiles = options?.rootFiles ?? ROOT_FILES;
 	const pkgs = options?.packages ?? (await discoverPackages(repoRoot));
+	const decisionDir = options?.decisionDir ?? 'docs/decisions';
+	const taskDir = options?.taskDir ?? 'docs/task';
+	const namespacePattern = options?.namespacePattern ?? '(@kata2\\/[a-z0-9_-]+|kata2)';
+	const historicalPrefixes = options?.historicalPrefixes ?? HISTORICAL_PREFIXES;
 
 	const markdownFiles: string[] = [
 		...scanRoots.flatMap((root) => walkMarkdownFiles(join(repoRoot, root))),
@@ -171,38 +199,38 @@ export async function validateDocRefsInRepo(
 
 	let rootDecisionsFiles: string[] = [];
 	try {
-		rootDecisionsFiles = readdirSync(join(repoRoot, 'docs', 'decisions'));
+		rootDecisionsFiles = readdirSync(join(repoRoot, decisionDir));
 	} catch {
 		// docs/decisions が存在しない場合
 	}
 
 	let rootTaskFiles: string[] = [];
 	try {
-		rootTaskFiles = readdirSync(join(repoRoot, 'docs', 'task'));
+		rootTaskFiles = readdirSync(join(repoRoot, taskDir));
 	} catch {
 		// docs/task が存在しない場合
 	}
 
 	for (const filePath of markdownFiles) {
 		const relFile = relative(repoRoot, filePath);
-		if (HISTORICAL_PREFIXES.some((prefix) => relFile.startsWith(prefix))) {
+		if (historicalPrefixes.some((prefix) => relFile.startsWith(prefix))) {
 			continue;
 		}
 
 		const text = readFileSync(filePath, 'utf8');
-		const refs = extractDocRefs(text);
+		const refs = extractDocRefs(text, decisionDir, taskDir, namespacePattern);
 		totalRefs += refs.length;
 
 		for (const refItem of refs) {
 			if (refItem.type === 'decision' || refItem.type === 'task') {
 				const numStr = refItem.ref;
-				const subDir = refItem.type === 'decision' ? 'decisions' : 'task';
+				const subDir = refItem.type === 'decision' ? decisionDir : taskDir;
 				const rootFilesForType = refItem.type === 'decision' ? rootDecisionsFiles : rootTaskFiles;
 				// 実体でも stub でもよい。根に <NNN>- で始まる md が在れば参照は切れていない。
 				const found = rootFilesForType.some((f) => f.startsWith(`${numStr}-`) && f.endsWith('.md'));
 				if (!found) {
 					violations.push(
-						`${relFile}:${refItem.line}: 存在しない ${refItem.type} 参照 docs/${subDir}/${numStr}`,
+						`${relFile}:${refItem.line}: 存在しない ${refItem.type} 参照 ${subDir}/${numStr}`,
 					);
 				}
 			} else {
@@ -210,14 +238,14 @@ export async function validateDocRefsInRepo(
 				let resolved = false;
 				let lastErr: unknown;
 				try {
-					await resolveDocRef(repoRoot, 'decision', refItem.ref, pkgs);
+					await resolveDocRef(repoRoot, 'decision', refItem.ref, pkgs, decisionDir, taskDir);
 					resolved = true;
 				} catch (err) {
 					lastErr = err;
 				}
 				if (!resolved) {
 					try {
-						await resolveDocRef(repoRoot, 'task', refItem.ref, pkgs);
+						await resolveDocRef(repoRoot, 'task', refItem.ref, pkgs, decisionDir, taskDir);
 						resolved = true;
 					} catch (err) {
 						lastErr = err;

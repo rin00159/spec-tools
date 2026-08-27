@@ -81,9 +81,7 @@ const IGNORED_DIR_NAMES = new Set([
 	'test-fixtures',
 ]);
 
-const SCANNABLE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs', '.json']);
-
-async function walkSourceFiles(dir: string): Promise<string[]> {
+async function walkSourceFiles(dir: string, extensions: ReadonlySet<string>): Promise<string[]> {
 	let entries: import('node:fs').Dirent[];
 	try {
 		entries = await readdir(dir, { withFileTypes: true });
@@ -97,12 +95,12 @@ async function walkSourceFiles(dir: string): Promise<string[]> {
 		}
 		const path = join(dir, entry.name);
 		if (entry.isDirectory()) {
-			files.push(...(await walkSourceFiles(path)));
+			files.push(...(await walkSourceFiles(path, extensions)));
 		} else if (entry.isFile()) {
 			const dotIdx = entry.name.lastIndexOf('.');
 			if (dotIdx !== -1) {
 				const ext = entry.name.slice(dotIdx);
-				if (SCANNABLE_EXTENSIONS.has(ext)) {
+				if (extensions.has(ext)) {
 					files.push(path);
 				}
 			}
@@ -115,13 +113,16 @@ export async function scanSourceCodeRefs(
 	roots: readonly string[],
 	knownIds: ReadonlySet<string>,
 	idPattern: string,
+	sourceExtensions: string[],
 ): Promise<CodeScanResult> {
 	const knownRefs: CodeClauseRef[] = [];
 	const unknownRefs: CodeClauseRef[] = [];
 	const todoRefs: CodeClauseRef[] = [];
 
+	const extensions = new Set(sourceExtensions);
+
 	for (const root of roots) {
-		const files = await walkSourceFiles(root);
+		const files = await walkSourceFiles(root, extensions);
 		for (const file of files) {
 			const content = await readFile(file, 'utf8');
 			const res = extractClauseRefsFromText(content, file, knownIds, idPattern);

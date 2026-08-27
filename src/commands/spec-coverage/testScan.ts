@@ -15,9 +15,7 @@ export interface TestNameEntry {
 	readonly referencedIds: readonly string[];
 }
 
-const TEST_CALL_RE = /\b(?:it|test)(?:\.\w+)?\(\s*(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')/g;
-
-async function walkTestFiles(dir: string): Promise<string[]> {
+async function walkTestFiles(dir: string, testSuffixes: string[]): Promise<string[]> {
 	let entries: import('node:fs').Dirent[];
 	try {
 		entries = await readdir(dir, { withFileTypes: true });
@@ -31,8 +29,8 @@ async function walkTestFiles(dir: string): Promise<string[]> {
 		}
 		const path = join(dir, entry.name);
 		if (entry.isDirectory()) {
-			files.push(...(await walkTestFiles(path)));
-		} else if (entry.isFile() && entry.name.endsWith('.test.ts')) {
+			files.push(...(await walkTestFiles(path, testSuffixes)));
+		} else if (entry.isFile() && testSuffixes.some((suffix) => entry.name.endsWith(suffix))) {
 			files.push(path);
 		}
 	}
@@ -42,30 +40,46 @@ async function walkTestFiles(dir: string): Promise<string[]> {
 export async function scanTestNames(
 	roots: readonly string[],
 	idPattern: string,
+	testSuffixes: string[],
+	testNamePatterns: string[],
 ): Promise<readonly TestNameEntry[]> {
 	const leadingIdRe = new RegExp(`^(${idPattern}):`);
 	const bracketIdRe = new RegExp(`\\[(${idPattern})\\]`, 'g');
 	const entries: TestNameEntry[] = [];
 
+	const regexes = testNamePatterns.map((p) => new RegExp(p, 'g'));
+
 	for (const root of roots) {
-		for (const file of await walkTestFiles(root)) {
+		for (const file of await walkTestFiles(root, testSuffixes)) {
 			const content = await readFile(file, 'utf8');
-			for (const match of content.matchAll(TEST_CALL_RE)) {
-				const name = match[1] ?? match[2];
-				if (name === undefined) {
-					continue;
+
+			for (const regex of regexes) {
+				for (const match of content.matchAll(regex)) {
+					// Find the first valid capture group after the full match
+					let name: string | undefined;
+					for (let i = 1; i < match.length; i++) {
+						if (match[i] !== undefined) {
+							name = match[i];
+							break;
+						}
+					}
+
+					if (name === undefined) {
+						continue;
+					}
+
+					const leadingMatch = name.match(leadingIdRe);
+					const leadingId = leadingMatch?.[1];
+					const bracketIds = [...name.matchAll(bracketIdRe)]
+						.map((m) => m[1])
+						.filter((id): id is string => id !== undefined);
+					entries.push({
+						file,
+						name,
+						leadingId,
+						referencedIds: leadingId === undefined ? bracketIds : [leadingId, ...bracketIds],
+					});
 				}
-				const leadingMatch = name.match(leadingIdRe);
-				const leadingId = leadingMatch?.[1];
-				const bracketIds = [...name.matchAll(bracketIdRe)]
-					.map((m) => m[1])
-					.filter((id): id is string => id !== undefined);
-				entries.push({
-					file,
-					name,
-					leadingId,
-					referencedIds: leadingId === undefined ? bracketIds : [leadingId, ...bracketIds],
-				});
 			}
 		}
 	}
