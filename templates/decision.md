@@ -1,27 +1,27 @@
 # {{number}} {{title}}
 
-**日付**: {{date}}
-**状態**: 確定
-**文脈**: 
+**Date**: {{date}}
+**Status**: Active
+**Context**: 
 
 ---
 
-## 背景
+## Background
 
-どの不具合・要求・条項から始まったか。
+What bug, requirement, or clause prompted this decision?
 
-## 決定
+## Decision
 
-何を決めたか。**条項が正本**なので、ここには「なぜその条項にしたか」を書く。
+What was decided? **Since the spec clause is the single source of truth**, this section should explain *why* that specific clause or rule was chosen.
 
-## 採らなかった選択肢と理由
+## Alternatives Considered and Rejected
 
-後で「なぜこうなっていないのか」を問われる部分。
+Why were other approaches not taken? (Important for future reference when someone asks "why didn't we do X?")
 
-## 関係する条項 ID
+## Related Clause IDs
 
-新設・変更・withdrawn にした条項の一覧(無ければ「無し」と書く)。
+List any spec clauses that were newly created, modified, or withdrawn (e.g., `status: withdrawn`) by this decision. (If none, write "None").
 
-## 実装中に見つかった別の欠陥
+## Incidental Findings
 
-本筋でなくても書く。起票したなら `docs/task/` の番号を添える。
+Any unrelated defects or tasks discovered during this process. (If tracked as a separate task, link the `docs/task/` number).

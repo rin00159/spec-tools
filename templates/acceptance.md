@@ -1,29 +1,29 @@
-# v{{major}}.{{minor}} Phase {{phase}} 検収証跡
+# v{{major}}.{{minor}} Phase {{phase}} Acceptance Record
 
-**日時**: {{date}}
-**正本**: `{{planFile}}`
-**判断**: 
+**Date**: {{date}}
+**Plan**: `{{planFile}}`
+**Result**: 
 
 ---
 
-## 完了判定の照合
+## Completion Criteria Check
 
-| # | 完了判定 | 結果 | 証跡 / 補足 |
+| # | Criteria | Result | Evidence / Notes |
 |---|---|---|---|
 | 1 |  |  |  |
 
-## 品質ゲート
+## Quality Gates
 
 ```
-pnpm verify --gate
+npm run test
 ```
 
-(出力の要約を貼る。**「配備した」を実測の証跡にしない**)
+(Paste the summary of the output. Do not just write "Deployed" as evidence)
 
-## 未実施(意図的)
+## Deferred Items (Intentional)
 
-後続 Phase へ送ったもの。**Phase に載せずに送ったものは `docs/task/` へ起票する**。
+Items pushed to subsequent phases. **Items pushed out of the plan entirely should be tracked as separate tasks in `docs/task/`.**
 
 ---
 
-- [ ] ユーザー承認
+- [ ] User Sign-off

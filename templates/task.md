@@ -1,12 +1,16 @@
 # {{number}} {{title}}
 
-**起票**: {{date}}
-**関係**: 
+**Opened**: {{date}}
+**Related**: 
 
-## 何が問題か
+## Problem Statement
 
-## どうするか(案)
+What is the issue or task to be resolved?
 
-## 前提・ブロッカー
+## Proposed Solution
 
-着手できる Phase が別の作業に従属しているなら、それを書く。無ければ「無し」。
+How do we plan to address the problem?
+
+## Prerequisites / Blockers
+
+If starting this task depends on another Phase or task being completed, list it here. Otherwise, write "None".
