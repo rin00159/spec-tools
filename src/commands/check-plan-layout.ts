@@ -1,6 +1,6 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
-import { loadConfig } from "../config.ts";
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join, relative } from 'node:path';
+import { loadConfig } from '../config.ts';
 
 function walk(dir: string): string[] {
 	const files: string[] = [];
@@ -9,11 +9,11 @@ function walk(dir: string): string[] {
 			const path = join(dir, entry.name);
 			if (entry.isDirectory()) {
 				files.push(...walk(path));
-			} else if (entry.isFile() && entry.name.endsWith(".md")) {
+			} else if (entry.isFile() && entry.name.endsWith('.md')) {
 				files.push(path);
 			}
 		}
-	} catch (e) {
+	} catch (_e) {
 		// Ignore if directory doesn't exist
 	}
 	return files;
@@ -51,9 +51,9 @@ function planPathCandidates(planPath: string, planDir: string): string[] {
 
 export function runCheckPlanLayout(cwd: string = process.cwd()): void {
 	const config = loadConfig(cwd).checkPlanLayout || {};
-	const planDirName = config.planDir || "docs/plan";
-	const scanRoots = config.scanRoots || ["docs", "spec", "packages"];
-	const rootFiles = config.rootFiles || ["README.md"];
+	const planDirName = config.planDir || 'docs/plan';
+	const scanRoots = config.scanRoots || ['docs', 'spec', 'packages'];
+	const rootFiles = config.rootFiles || ['README.md'];
 
 	const planDir = join(cwd, planDirName);
 	const violations: string[] = [];
@@ -76,22 +76,20 @@ export function runCheckPlanLayout(cwd: string = process.cwd()): void {
 
 	let referenceCount = 0;
 	for (const file of markdownFiles) {
-		const text = readFileSync(file, "utf8");
+		const text = readFileSync(file, 'utf8');
 		for (const planPath of extractPlanPaths(text, planDirName)) {
 			referenceCount++;
 			const found = planPathCandidates(planPath, planDirName).some((candidate) =>
 				exists(join(cwd, candidate)),
 			);
 			if (!found) {
-				violations.push(
-					`${relative(cwd, file)}: Points to non-existent plan file → ${planPath}`,
-				);
+				violations.push(`${relative(cwd, file)}: Points to non-existent plan file → ${planPath}`);
 			}
 		}
 	}
 
 	if (violations.length > 0) {
-		console.error("check-plan-layout: Violations found");
+		console.error('check-plan-layout: Violations found');
 		for (const violation of violations) {
 			console.error(`  - ${violation}`);
 		}

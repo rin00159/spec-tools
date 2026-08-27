@@ -5,8 +5,8 @@
 // 起点とし、依存閉包を走査して package 名と実体ディレクトリ(realpath)の対応を返す。
 // symlink は realpath で解決してから package 名で畳む(R5)。
 
-import { readdir, readFile, realpath, stat } from "node:fs/promises";
-import { join } from "node:path";
+import { readdir, readFile, realpath, stat } from 'node:fs/promises';
+import { join } from 'node:path';
 
 export interface PackageEntry {
 	readonly name: string;
@@ -24,16 +24,16 @@ async function isDirectory(path: string): Promise<boolean> {
 
 async function hasDocs(dir: string): Promise<boolean> {
 	return (
-		(await isDirectory(join(dir, "docs", "decisions"))) ||
-		(await isDirectory(join(dir, "docs", "task")))
+		(await isDirectory(join(dir, 'docs', 'decisions'))) ||
+		(await isDirectory(join(dir, 'docs', 'task')))
 	);
 }
 
 async function readPackageName(dir: string): Promise<string | undefined> {
 	try {
-		const raw = await readFile(join(dir, "package.json"), "utf8");
+		const raw = await readFile(join(dir, 'package.json'), 'utf8');
 		const data = JSON.parse(raw) as { name?: unknown };
-		return typeof data.name === "string" ? data.name : undefined;
+		return typeof data.name === 'string' ? data.name : undefined;
 	} catch {
 		return undefined;
 	}
@@ -41,15 +41,15 @@ async function readPackageName(dir: string): Promise<string | undefined> {
 
 async function parseWorkspacePatterns(repoRoot: string): Promise<string[]> {
 	try {
-		const raw = await readFile(join(repoRoot, "pnpm-workspace.yaml"), "utf8");
+		const raw = await readFile(join(repoRoot, 'pnpm-workspace.yaml'), 'utf8');
 		const patterns: string[] = [];
-		for (const line of raw.split("\n")) {
+		for (const line of raw.split('\n')) {
 			const trimmed = line.trim();
-			if (trimmed.startsWith("-")) {
+			if (trimmed.startsWith('-')) {
 				const val = trimmed
 					.slice(1)
 					.trim()
-					.replace(/^['"]|['"]$/g, "");
+					.replace(/^['"]|['"]$/g, '');
 				if (val) {
 					patterns.push(val);
 				}
@@ -61,7 +61,7 @@ async function parseWorkspacePatterns(repoRoot: string): Promise<string[]> {
 	} catch {
 		// pnpm-workspace.yaml が無ければ既定パターン
 	}
-	return ["packages/*", "tools/*", "examples/*", "apps/*"];
+	return ['packages/*', 'tools/*', 'examples/*', 'apps/*'];
 }
 
 /**
@@ -71,9 +71,7 @@ async function parseWorkspacePatterns(repoRoot: string): Promise<string[]> {
  *   同じ name を名乗った場合は throw する。文書を持たない第三者 package の同名衝突は許容する。
  * - npm レジストリへは問い合わせない(ファイルシステム内で完結)。
  */
-export async function discoverPackages(
-	repoRoot: string,
-): Promise<ReadonlyArray<PackageEntry>> {
+export async function discoverPackages(repoRoot: string): Promise<ReadonlyArray<PackageEntry>> {
 	const realRoot = await realpath(repoRoot);
 	const nameToDir = new Map<string, string>();
 	const queue: string[] = [];
@@ -117,7 +115,7 @@ export async function discoverPackages(
 	}
 
 	// 1. ルート自身
-	const rootName = (await readPackageName(realRoot)) ?? "root";
+	const rootName = (await readPackageName(realRoot)) ?? 'root';
 	nameToDir.set(rootName, realRoot);
 	queue.push(realRoot);
 	visitedDirs.add(realRoot);
@@ -125,7 +123,7 @@ export async function discoverPackages(
 	// 2. workspace パターンからパッケージ候補を列挙
 	const patterns = await parseWorkspacePatterns(repoRoot);
 	for (const pattern of patterns) {
-		if (pattern.endsWith("/*")) {
+		if (pattern.endsWith('/*')) {
 			const parent = pattern.slice(0, -2);
 			const parentDir = join(repoRoot, parent);
 			if (await isDirectory(parentDir)) {
@@ -145,14 +143,14 @@ export async function discoverPackages(
 		if (!currentDir) {
 			continue;
 		}
-		const nodeModulesDir = join(currentDir, "node_modules");
+		const nodeModulesDir = join(currentDir, 'node_modules');
 		if (await isDirectory(nodeModulesDir)) {
 			const entries = await readdir(nodeModulesDir, { withFileTypes: true });
 			for (const entry of entries) {
-				if (entry.name.startsWith(".")) {
+				if (entry.name.startsWith('.')) {
 					continue;
 				}
-				if (entry.name.startsWith("@")) {
+				if (entry.name.startsWith('@')) {
 					const scopePath = join(nodeModulesDir, entry.name);
 					let realScope: string;
 					try {
@@ -165,7 +163,7 @@ export async function discoverPackages(
 							withFileTypes: true,
 						});
 						for (const sub of subEntries) {
-							if (sub.name.startsWith(".")) {
+							if (sub.name.startsWith('.')) {
 								continue;
 							}
 							if (sub.isDirectory() || sub.isSymbolicLink()) {

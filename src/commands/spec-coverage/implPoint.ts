@@ -12,8 +12,7 @@ export interface ImplPoint {
 /** 先行ゼロを許さない(`v0_1_01` は書式違反)。`0` 単体は許す。 */
 const IMPL_TOKEN_RE = /^v(0|[1-9]\d*)_(0|[1-9]\d*)_(0|[1-9]\d*)$/;
 
-export const IMPL_TOKEN_SOURCE =
-	"v(?:0|[1-9]\\d*)_(?:0|[1-9]\\d*)_(?:0|[1-9]\\d*)";
+export const IMPL_TOKEN_SOURCE = 'v(?:0|[1-9]\\d*)_(?:0|[1-9]\\d*)_(?:0|[1-9]\\d*)';
 
 export function parseImplPoint(token: string): ImplPoint | undefined {
 	const match = token.match(IMPL_TOKEN_RE);

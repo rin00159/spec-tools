@@ -7,12 +7,11 @@
 //   pnpm task:show 061
 //   pnpm task:show @kata2/targetlib-schemaui:200
 
-import { readdir, readFile } from "node:fs/promises";
-import { join, relative, resolve } from "node:path";
-import { discoverPackages, type PackageEntry } from "./closure.ts";
+import { readdir, readFile } from 'node:fs/promises';
+import { join, relative } from 'node:path';
+import { discoverPackages, type PackageEntry } from './closure.ts';
 
-
-export type DocType = "decision" | "task";
+export type DocType = 'decision' | 'task';
 
 export interface ResolvedDoc {
 	readonly reference: string;
@@ -23,19 +22,12 @@ export interface ResolvedDoc {
 // ファイル名に `_` を含む legacy が在る(036-v0_2-after-tasks.md)。
 const NUMBERED_FILE_RE = /^(\d{3})-[a-z0-9_-]+\.md$/;
 
-async function findNumberedFile(
-	dir: string,
-	targetNum: number,
-): Promise<string | undefined> {
+async function findNumberedFile(dir: string, targetNum: number): Promise<string | undefined> {
 	try {
 		const entries = await readdir(dir, { withFileTypes: true });
-		const prefix = `${String(targetNum).padStart(3, "0")}-`;
+		const prefix = `${String(targetNum).padStart(3, '0')}-`;
 		for (const entry of entries) {
-			if (
-				entry.isFile() &&
-				entry.name.startsWith(prefix) &&
-				entry.name.endsWith(".md")
-			) {
+			if (entry.isFile() && entry.name.startsWith(prefix) && entry.name.endsWith('.md')) {
 				return join(dir, entry.name);
 			}
 		}
@@ -48,9 +40,7 @@ async function findNumberedFile(
 async function listNumberedFiles(dir: string): Promise<string[]> {
 	try {
 		const entries = await readdir(dir, { withFileTypes: true });
-		return entries
-			.filter((e) => e.isFile() && NUMBERED_FILE_RE.test(e.name))
-			.map((e) => e.name);
+		return entries.filter((e) => e.isFile() && NUMBERED_FILE_RE.test(e.name)).map((e) => e.name);
 	} catch {
 		return [];
 	}
@@ -65,11 +55,7 @@ function parseStubTarget(content: string): string | undefined {
 	return match?.[1];
 }
 
-export function suggestClosest(
-	input: string,
-	candidates: readonly string[],
-	limit = 5,
-): string[] {
+export function suggestClosest(input: string, candidates: readonly string[], limit = 5): string[] {
 	const lower = input.toLowerCase();
 	const matched = candidates.filter(
 		(c) => c.toLowerCase().includes(lower) || lower.includes(c.toLowerCase()),
@@ -86,7 +72,7 @@ export async function resolveDocRef(
 	ref: string,
 	packages?: ReadonlyArray<PackageEntry>,
 ): Promise<ResolvedDoc> {
-	const subDir = docType === "decision" ? "decisions" : "task";
+	const subDir = docType === 'decision' ? 'decisions' : 'task';
 	const pkgs = packages ?? (await discoverPackages(repoRoot));
 
 	// 1. bare 番号 (例: "105", "063")
@@ -98,25 +84,24 @@ export async function resolveDocRef(
 			);
 		}
 
-		const rootDir = join(repoRoot, "docs", subDir);
+		const rootDir = join(repoRoot, 'docs', subDir);
 		const filePath = await findNumberedFile(rootDir, num);
 		if (!filePath) {
 			const existing = await listNumberedFiles(rootDir);
 			const suggestions = suggestClosest(ref, existing);
-			const hint =
-				suggestions.length > 0 ? ` (近い候補: ${suggestions.join(", ")})` : "";
+			const hint = suggestions.length > 0 ? ` (近い候補: ${suggestions.join(', ')})` : '';
 			throw new Error(`${docType} が見つからない: ${ref}${hint}`);
 		}
 
-		const rawContent = await readFile(filePath, "utf8");
+		const rawContent = await readFile(filePath, 'utf8');
 		const stubTarget = parseStubTarget(rawContent);
 		if (stubTarget) {
 			// stub の場合は移設先を解決して表示
-			if (stubTarget.includes(":")) {
+			if (stubTarget.includes(':')) {
 				return await resolveDocRef(repoRoot, docType, stubTarget, pkgs);
 			}
 			const targetPath = join(repoRoot, stubTarget);
-			const targetContent = await readFile(targetPath, "utf8");
+			const targetContent = await readFile(targetPath, 'utf8');
 			return {
 				reference: ref,
 				filePath: targetPath,
@@ -125,49 +110,42 @@ export async function resolveDocRef(
 		}
 
 		return {
-			reference: `kata2:${String(num).padStart(3, "0")}`,
+			reference: `kata2:${String(num).padStart(3, '0')}`,
 			filePath,
 			content: rawContent,
 		};
 	}
 
 	// 2. 名前空間付き参照 (例: "@kata2/targetlib-schemaui:200", "kata2:200")
-	if (ref.includes(":")) {
-		const colonIdx = ref.lastIndexOf(":");
+	if (ref.includes(':')) {
+		const colonIdx = ref.lastIndexOf(':');
 		const pkgName = ref.slice(0, colonIdx);
 		const numStr = ref.slice(colonIdx + 1);
 		const num = Number(numStr);
 
 		if (Number.isNaN(num)) {
-			throw new Error(
-				`無効な参照形式: ${ref} (例: 105 または @kata2/core:200)`,
-			);
+			throw new Error(`無効な参照形式: ${ref} (例: 105 または @kata2/core:200)`);
 		}
 
 		const pkgEntry = pkgs.find((p) => p.name === pkgName);
 		if (!pkgEntry) {
 			const pkgNames = pkgs.map((p) => p.name);
 			const suggestions = suggestClosest(pkgName, pkgNames);
-			const hint =
-				suggestions.length > 0
-					? ` (近い package: ${suggestions.join(", ")})`
-					: "";
+			const hint = suggestions.length > 0 ? ` (近い package: ${suggestions.join(', ')})` : '';
 			throw new Error(`package が見つからない: ${pkgName}${hint}`);
 		}
 
-		const docDir = join(pkgEntry.dir, "docs", subDir);
+		const docDir = join(pkgEntry.dir, 'docs', subDir);
 		const filePath = await findNumberedFile(docDir, num);
 		if (!filePath) {
 			const existing = await listNumberedFiles(docDir);
 			const suggestions = suggestClosest(numStr, existing);
 			const hint =
-				suggestions.length > 0
-					? ` (この package 内の候補: ${suggestions.join(", ")})`
-					: "";
+				suggestions.length > 0 ? ` (この package 内の候補: ${suggestions.join(', ')})` : '';
 			throw new Error(`${docType} が見つからない: ${ref}${hint}`);
 		}
 
-		const content = await readFile(filePath, "utf8");
+		const content = await readFile(filePath, 'utf8');
 		return {
 			reference: ref,
 			filePath,
@@ -178,9 +156,13 @@ export async function resolveDocRef(
 	throw new Error(`無効な参照形式: ${ref} (例: 105 または @kata2/core:200)`);
 }
 
-export async function runShow(repoRoot: string, docType: string | undefined, refs: string[]): Promise<void> {
-	if (docType !== "decision" && docType !== "task") {
-		console.error("Usage: spec-tools doc-ref show <decision|task> <ref> [ref...]");
+export async function runShow(
+	repoRoot: string,
+	docType: string | undefined,
+	refs: string[],
+): Promise<void> {
+	if (docType !== 'decision' && docType !== 'task') {
+		console.error('Usage: spec-tools doc-ref show <decision|task> <ref> [ref...]');
 		process.exitCode = 2;
 		return;
 	}
@@ -202,7 +184,7 @@ export async function runShow(repoRoot: string, docType: string | undefined, ref
 			const relPath = relative(repoRoot, resolved.filePath);
 			console.log(`# ${resolved.reference} (${relPath})\n`);
 			console.log(resolved.content.trimEnd());
-			console.log("");
+			console.log('');
 		} catch (err) {
 			missing = true;
 			console.error(err instanceof Error ? err.message : String(err));
