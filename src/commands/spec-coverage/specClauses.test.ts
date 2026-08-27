@@ -23,7 +23,8 @@ describe('parseSpecClauses', () => {
 		);
 
 		const clauses = await parseSpecClauses([specDir], {
-			attrPattern: '^\\*\\*Attributes\\*\\*: \\`status: (?<status>active|withdrawn)\\` / \\`since: (?<since>[\\d.]+)\\` / \\`kind: (?<kind>normative|informational)\\` / \\`impl: (?<impl>[^`]+)\\`\\s*$',
+			attrPattern:
+				'^\\*\\*Attributes\\*\\*: \\`status: (?<status>active|withdrawn)\\` / \\`since: (?<since>[\\d.]+)\\` / \\`kind: (?<kind>normative|informational)\\` / \\`impl: (?<impl>[^`]+)\\`\\s*$',
 			normativeKinds: ['normative'],
 		});
 		expect(clauses.length).toBe(1);
@@ -80,7 +81,8 @@ describe('parseSpecClauses', () => {
 		);
 
 		const clauses = await parseSpecClauses([specDir], {
-			attrPattern: '^\\*\\*Attributes\\*\\*: \\`status: (?<status>active|withdrawn)\\` / \\`since: (?<since>[\\d.]+)\\` / \\`kind: (?<kind>normative|informational)\\` / \\`impl: (?<impl>[^`]+)\\`\\s*$',
+			attrPattern:
+				'^\\*\\*Attributes\\*\\*: \\`status: (?<status>active|withdrawn)\\` / \\`since: (?<since>[\\d.]+)\\` / \\`kind: (?<kind>normative|informational)\\` / \\`impl: (?<impl>[^`]+)\\`\\s*$',
 			normativeKinds: ['normative'],
 		});
 		expect(clauses.length).toBe(1);

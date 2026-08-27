@@ -64,9 +64,7 @@ export function collectDocs(
 	const realRoot = realpathSync(repoRoot);
 
 	const stateRe = statePatternStr ? new RegExp(statePatternStr, 'm') : undefined;
-	const stubRe = stubPatternStr
-		? new RegExp(stubPatternStr)
-		: /\*\*Moved To\*\*:\s*`([^`]+)`/;
+	const stubRe = stubPatternStr ? new RegExp(stubPatternStr) : /\*\*Moved To\*\*:\s*`([^`]+)`/;
 
 	for (const pkg of packages) {
 		const dir = join(pkg.dir, subDir);

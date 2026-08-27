@@ -1,6 +1,6 @@
 // Numbering and file naming rules (pure functions).
 
-import type { ImplPoint } from "../spec-coverage/implPoint.ts";
+import type { ImplPoint } from '../spec-coverage/implPoint.ts';
 
 const NUMBERED_FILE_RE = /^(\d{3})-[a-z0-9_-]+\.md$/;
 export const SLUG_RE = /^[a-z0-9_]+(?:-[a-z0-9_]+)*$/;
@@ -10,10 +10,7 @@ export const SLUG_RE = /^[a-z0-9_]+(?:-[a-z0-9_]+)*$/;
  * There is a record of number duplication in v1). Used in both `docs/decisions/` and `docs/task/`.
  * native starts numbering from 200, and freezes legacy (001~110 / 001~063) (docs/decisions/109 decision 4-c).
  */
-export function nextNumber(
-	fileNames: readonly string[],
-	startNumber: number = 200,
-): number {
+export function nextNumber(fileNames: readonly string[], startNumber: number = 200): number {
 	let max = 0;
 	for (const name of fileNames) {
 		const match = name.match(NUMBERED_FILE_RE);
@@ -26,7 +23,7 @@ export function nextNumber(
 }
 
 export function numberedFileName(numberValue: number, slug: string): string {
-	return `${String(numberValue).padStart(3, "0")}-${slug}.md`;
+	return `${String(numberValue).padStart(3, '0')}-${slug}.md`;
 }
 
 export interface ScaffoldPathsConfig {
@@ -36,11 +33,8 @@ export interface ScaffoldPathsConfig {
 }
 
 /** Version directory (`docs/plan/0_2`). `impl`'s major/minor is exactly the version. */
-export function planDirFor(
-	point: ImplPoint,
-	config?: ScaffoldPathsConfig,
-): string {
-	const template = config?.planDirTemplate ?? "docs/plan/{{major}}_{{minor}}";
+export function planDirFor(point: ImplPoint, config?: ScaffoldPathsConfig): string {
+	const template = config?.planDirTemplate ?? 'docs/plan/{{major}}_{{minor}}';
 	return template
 		.replace(/\{\{major\}\}/g, String(point.major))
 		.replace(/\{\{minor\}\}/g, String(point.minor))
@@ -48,11 +42,8 @@ export function planDirFor(
 }
 
 /** The source of truth for the plan of that Phase (`docs/plan/0_2/phase24.md`). */
-export function planFileFor(
-	point: ImplPoint,
-	config?: ScaffoldPathsConfig,
-): string {
-	const template = config?.planFileTemplate ?? "{{planDir}}/phase{{phase}}.md";
+export function planFileFor(point: ImplPoint, config?: ScaffoldPathsConfig): string {
+	const template = config?.planFileTemplate ?? '{{planDir}}/phase{{phase}}.md';
 	const planDir = planDirFor(point, config);
 	return template
 		.replace(/\{\{planDir\}\}/g, planDir)
@@ -62,25 +53,17 @@ export function planFileFor(
 }
 
 /** Acceptance evidence (`docs/acceptance/phase-v0_2-24.md`). */
-export function acceptanceFileFor(
-	point: ImplPoint,
-	config?: ScaffoldPathsConfig,
-): string {
+export function acceptanceFileFor(point: ImplPoint, config?: ScaffoldPathsConfig): string {
 	const template =
-		config?.acceptanceFileTemplate ??
-		"docs/acceptance/phase-v{{major}}_{{minor}}-{{phase}}.md";
+		config?.acceptanceFileTemplate ?? 'docs/acceptance/phase-v{{major}}_{{minor}}-{{phase}}.md';
 	return template
 		.replace(/\{\{major\}\}/g, String(point.major))
 		.replace(/\{\{minor\}\}/g, String(point.minor))
 		.replace(/\{\{phase\}\}/g, String(point.phase));
 }
 
-export function decisionTemplate(
-	numberValue: number,
-	title: string,
-	today: string,
-): string {
-	return `# ${String(numberValue).padStart(3, "0")} ${title}
+export function decisionTemplate(numberValue: number, title: string, today: string): string {
+	return `# ${String(numberValue).padStart(3, '0')} ${title}
 
 **Date**: ${today}
 **Status**: Confirmed
@@ -148,12 +131,8 @@ Things sent to the subsequent Phase. **Things sent without being put on a Phase 
 `;
 }
 
-export function taskTemplate(
-	numberValue: number,
-	title: string,
-	today: string,
-): string {
-	return `# ${String(numberValue).padStart(3, "0")} ${title}
+export function taskTemplate(numberValue: number, title: string, today: string): string {
+	return `# ${String(numberValue).padStart(3, '0')} ${title}
 
 **Created**: ${today}
 **Relations**: 
