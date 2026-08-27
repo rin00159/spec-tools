@@ -3,19 +3,19 @@ import type { ClauseInfo } from '../spec-coverage/specClauses.ts';
 import { extractClauseBody, renderIndex, suggestIds } from './clause.ts';
 
 const lines = [
-	'# 見出し',
+	'# Heading',
 	'',
-	'## K-CORE-DEF-001 単調精緻化',
+	'## K-CORE-DEF-001 Monotonic refinement',
 	'',
-	'**属性**: `status: active`',
+	'**Attributes**: `status: active`',
 	'',
-	'### 下位見出し',
+	'### Subheading',
 	'',
-	'本文',
+	'Body',
 	'',
-	'## K-CORE-DEF-002 次の条項',
+	'## K-CORE-DEF-002 Next clause',
 	'',
-	'次の本文',
+	'Next body',
 ];
 
 function clause(overrides: Partial<ClauseInfo>): ClauseInfo {
@@ -23,11 +23,11 @@ function clause(overrides: Partial<ClauseInfo>): ClauseInfo {
 		id: 'K-CORE-DEF-001',
 		status: 'active',
 		since: '0.1.0',
-		kind: '規範',
+		kind: 'normative',
 		impl: { major: 0, minor: 1, phase: 1 },
 		file: 'packages/core/docs/spec/10-core-model.md',
 		line: 3,
-		title: '単調精緻化',
+		title: 'Monotonic refinement',
 		isNormative: true,
 		isActive: true,
 		...overrides,
@@ -35,31 +35,31 @@ function clause(overrides: Partial<ClauseInfo>): ClauseInfo {
 }
 
 describe('extractClauseBody', () => {
-	it('次の `## ` 見出しの直前までを本文として返す', () => {
+	it('returns the body up to just before the next `## ` heading', () => {
 		const body = extractClauseBody(lines, 3);
-		expect(body).toContain('## K-CORE-DEF-001 単調精緻化');
-		expect(body).toContain('本文');
+		expect(body).toContain('## K-CORE-DEF-001 Monotonic refinement');
+		expect(body).toContain('Body');
 		expect(body).not.toContain('K-CORE-DEF-002');
 	});
 
-	it('`### ` の下位見出しは本文に含める(条項が途中で切れない)', () => {
-		expect(extractClauseBody(lines, 3)).toContain('### 下位見出し');
+	it('includes `### ` subheadings in the body (the clause is not cut off halfway)', () => {
+		expect(extractClauseBody(lines, 3)).toContain('### Subheading');
 	});
 
-	it('最後の条項はファイル末尾までを本文とする', () => {
+	it('uses the remainder of the file as the body for the last clause', () => {
 		const body = extractClauseBody(lines, 11);
-		expect(body).toContain('次の本文');
+		expect(body).toContain('Next body');
 	});
 });
 
 describe('suggestIds', () => {
-	it('同じ AREA の条項を候補に出す', () => {
+	it('suggests clauses from the same AREA', () => {
 		expect(
 			suggestIds(['K-CORE-TYPE', '999'].join('-'), ['K-CORE-TYPE-001', 'K-CORE-DEF-001']),
 		).toEqual(['K-CORE-TYPE-001']);
 	});
 
-	it('AREA が一致しなければ前方一致で拾う', () => {
+	it('picks up prefix matches if AREA does not match', () => {
 		expect(suggestIds(['K-CORE-XXXX', '001'].join('-'), ['K-CORE-TYPE-001'])).toEqual([
 			'K-CORE-TYPE-001',
 		]);
@@ -67,11 +67,11 @@ describe('suggestIds', () => {
 });
 
 describe('renderIndex', () => {
-	it('生成物であることを先頭に明記する(C2)', () => {
-		expect(renderIndex([clause({})])).toContain('手で編集しない');
+	it('explicitly states at the top that it is a generated product (C2)', () => {
+		expect(renderIndex([clause({})])).toContain('Do not edit manually');
 	});
 
-	it('ファイルごとに分け、条項を行番号順に並べる', () => {
+	it('divides by file and orders clauses by line number', () => {
 		const output = renderIndex([
 			clause({ id: 'K-CORE-DEF-002', line: 40 }),
 			clause({ id: 'K-CORE-DEF-001', line: 10 }),
@@ -79,12 +79,12 @@ describe('renderIndex', () => {
 		expect(output.indexOf('K-CORE-DEF-001')).toBeLessThan(output.indexOf('K-CORE-DEF-002'));
 	});
 
-	it('withdrawn の件数を数える', () => {
+	it('counts the number of withdrawn clauses', () => {
 		expect(
 			renderIndex([
 				clause({}),
 				clause({ id: 'K-CORE-DEF-002', status: 'withdrawn', isActive: false }),
 			]),
-		).toContain('withdrawn/inactive 1件');
+		).toContain('withdrawn/inactive: 1');
 	});
 });

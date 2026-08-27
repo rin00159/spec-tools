@@ -1,6 +1,6 @@
-// spec:coverage — 00-conventions.md が定める3つの問いに答える(K-CORE-ERR-002 の検出源(b)を含む)。
-// 実行: `node --experimental-strip-types tools/spec-coverage/src/index.ts`
-// 現在地は spec/PHASE。一時的な上書きは `--phase v0_2_1`(複数指定は error)。
+// spec:coverage — answers the 3 questions defined by 00-conventions.md (includes detection source (b) for K-CORE-ERR-002).
+// Run: `node --experimental-strip-types tools/spec-coverage/src/index.ts`
+// The current point is spec/PHASE. Temporary override is `--phase v0_2_1` (multiple specifications cause an error).
 
 import { join, relative } from 'node:path';
 import { loadConfig } from '../../config.ts';

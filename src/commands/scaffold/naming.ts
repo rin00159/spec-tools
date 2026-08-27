@@ -1,21 +1,19 @@
-// 採番とファイル名の規則(純関数)。
-//
-// 番号とファイル名は散文の規則として skill に書かれていたため、読み違えると
-// **番号重複や存在しないパスの直書き**が起きていた(v1 で decisions の番号重複、
-// v0.2 Phase 12 まで kata2-verify skill が存在しないパスを指していた)。
-// 規則をここへ寄せ、コマンドが正しい名前でファイルを作る形にする(docs/decisions/089)。
+// Numbering and file naming rules (pure functions).
 
-import type { ImplPoint } from '../spec-coverage/implPoint.ts';
+import type { ImplPoint } from "../spec-coverage/implPoint.ts";
 
 const NUMBERED_FILE_RE = /^(\d{3})-[a-z0-9_-]+\.md$/;
 export const SLUG_RE = /^[a-z0-9_]+(?:-[a-z0-9_]+)*$/;
 
 /**
- * 既存の**最大番号 +1** (ただし最低 200) を返す。ファイル数 +1 は使わない(欠番があると重複する。
- * v1 で番号重複の実績あり)。`docs/decisions/` と `docs/task/` の両方で使う。
- * native は 200 から採番し、legacy(001〜110 / 001〜063)を凍結する(docs/decisions/109 決定4-c)。
+ * Returns the existing **maximum number +1** (minimum 200). We do not use file count +1 (duplicates if there are missing numbers.
+ * There is a record of number duplication in v1). Used in both `docs/decisions/` and `docs/task/`.
+ * native starts numbering from 200, and freezes legacy (001~110 / 001~063) (docs/decisions/109 decision 4-c).
  */
-export function nextNumber(fileNames: readonly string[], startNumber: number = 200): number {
+export function nextNumber(
+	fileNames: readonly string[],
+	startNumber: number = 200,
+): number {
 	let max = 0;
 	for (const name of fileNames) {
 		const match = name.match(NUMBERED_FILE_RE);
@@ -28,7 +26,7 @@ export function nextNumber(fileNames: readonly string[], startNumber: number = 2
 }
 
 export function numberedFileName(numberValue: number, slug: string): string {
-	return `${String(numberValue).padStart(3, '0')}-${slug}.md`;
+	return `${String(numberValue).padStart(3, "0")}-${slug}.md`;
 }
 
 export interface ScaffoldPathsConfig {
@@ -37,18 +35,24 @@ export interface ScaffoldPathsConfig {
 	acceptanceFileTemplate?: string;
 }
 
-/** 版ディレクトリ(`docs/plan/0_2`)。`impl` の major/minor がそのまま版である。 */
-export function planDirFor(point: ImplPoint, config?: ScaffoldPathsConfig): string {
-	const template = config?.planDirTemplate ?? 'docs/plan/{{major}}_{{minor}}';
+/** Version directory (`docs/plan/0_2`). `impl`'s major/minor is exactly the version. */
+export function planDirFor(
+	point: ImplPoint,
+	config?: ScaffoldPathsConfig,
+): string {
+	const template = config?.planDirTemplate ?? "docs/plan/{{major}}_{{minor}}";
 	return template
 		.replace(/\{\{major\}\}/g, String(point.major))
 		.replace(/\{\{minor\}\}/g, String(point.minor))
 		.replace(/\{\{phase\}\}/g, String(point.phase));
 }
 
-/** その Phase の計画の正本(`docs/plan/0_2/phase24.md`)。 */
-export function planFileFor(point: ImplPoint, config?: ScaffoldPathsConfig): string {
-	const template = config?.planFileTemplate ?? '{{planDir}}/phase{{phase}}.md';
+/** The source of truth for the plan of that Phase (`docs/plan/0_2/phase24.md`). */
+export function planFileFor(
+	point: ImplPoint,
+	config?: ScaffoldPathsConfig,
+): string {
+	const template = config?.planFileTemplate ?? "{{planDir}}/phase{{phase}}.md";
 	const planDir = planDirFor(point, config);
 	return template
 		.replace(/\{\{planDir\}\}/g, planDir)
@@ -57,44 +61,52 @@ export function planFileFor(point: ImplPoint, config?: ScaffoldPathsConfig): str
 		.replace(/\{\{phase\}\}/g, String(point.phase));
 }
 
-/** 検収証跡(`docs/acceptance/phase-v0_2-24.md`)。 */
-export function acceptanceFileFor(point: ImplPoint, config?: ScaffoldPathsConfig): string {
+/** Acceptance evidence (`docs/acceptance/phase-v0_2-24.md`). */
+export function acceptanceFileFor(
+	point: ImplPoint,
+	config?: ScaffoldPathsConfig,
+): string {
 	const template =
-		config?.acceptanceFileTemplate ?? 'docs/acceptance/phase-v{{major}}_{{minor}}-{{phase}}.md';
+		config?.acceptanceFileTemplate ??
+		"docs/acceptance/phase-v{{major}}_{{minor}}-{{phase}}.md";
 	return template
 		.replace(/\{\{major\}\}/g, String(point.major))
 		.replace(/\{\{minor\}\}/g, String(point.minor))
 		.replace(/\{\{phase\}\}/g, String(point.phase));
 }
 
-export function decisionTemplate(numberValue: number, title: string, today: string): string {
-	return `# ${String(numberValue).padStart(3, '0')} ${title}
+export function decisionTemplate(
+	numberValue: number,
+	title: string,
+	today: string,
+): string {
+	return `# ${String(numberValue).padStart(3, "0")} ${title}
 
-**日付**: ${today}
-**状態**: 確定
-**文脈**: 
+**Date**: ${today}
+**Status**: Confirmed
+**Context**: 
 
 ---
 
-## 背景
+## Background
 
-どの不具合・要求・条項から始まったか。
+Which bug, request, or clause did it start from?
 
-## 決定
+## Decision
 
-何を決めたか。**条項が正本**なので、ここには「なぜその条項にしたか」を書く。
+What was decided? **The clause is the source of truth**, so write "why this clause was chosen" here.
 
-## 採らなかった選択肢と理由
+## Unselected options and reasons
 
-後で「なぜこうなっていないのか」を問われる部分。
+The part where you will be asked later "why is it not like this?".
 
-## 関係する条項 ID
+## Related clause IDs
 
-新設・変更・withdrawn にした条項の一覧(無ければ「無し」と書く)。
+List of new, changed, or withdrawn clauses (write "None" if none).
 
-## 実装中に見つかった別の欠陥
+## Other defects found during implementation
 
-本筋でなくても書く。起票したなら \`docs/task/\` の番号を添える。
+Write it even if it's not the main subject. If a ticket was created, add the number in \`docs/task/\`.
 `;
 }
 
@@ -104,50 +116,54 @@ export function acceptanceTemplate(
 	config?: ScaffoldPathsConfig,
 ): string {
 	const label = `v${point.major}.${point.minor} Phase ${point.phase}`;
-	return `# ${label} 検収証跡
+	return `# ${label} Acceptance Evidence
 
-**日時**: ${today}
-**正本**: \`${planFileFor(point, config)}\`
-**判断**: 
+**Date & Time**: ${today}
+**Source of Truth**: \`${planFileFor(point, config)}\`
+**Decision**: 
 
 ---
 
-## 完了判定の照合
+## Verification of Completion Criteria
 
-| # | 完了判定 | 結果 | 証跡 / 補足 |
+| # | Completion Criteria | Result | Evidence / Notes |
 |---|---|---|---|
 | 1 |  |  |  |
 
-## 品質ゲート
+## Quality Gate
 
 \`\`\`
 pnpm verify --gate
 \`\`\`
 
-(出力の要約を貼る。**「配備した」を実測の証跡にしない**)
+(Paste a summary of the output. **Do not use "Deployed" as measured evidence**)
 
-## 未実施(意図的)
+## Not implemented (intentional)
 
-後続 Phase へ送ったもの。**Phase に載せずに送ったものは \`docs/task/\` へ起票する**。
+Things sent to the subsequent Phase. **Things sent without being put on a Phase should be ticketed in \`docs/task/\`**.
 
 ---
 
-- [ ] ユーザー承認
+- [ ] User approval
 `;
 }
 
-export function taskTemplate(numberValue: number, title: string, today: string): string {
-	return `# ${String(numberValue).padStart(3, '0')} ${title}
+export function taskTemplate(
+	numberValue: number,
+	title: string,
+	today: string,
+): string {
+	return `# ${String(numberValue).padStart(3, "0")} ${title}
 
-**起票**: ${today}
-**関係**: 
+**Created**: ${today}
+**Relations**: 
 
-## 何が問題か
+## What is the problem?
 
-## どうするか(案)
+## What to do (proposal)
 
-## 前提・ブロッカー
+## Prerequisites / Blockers
 
-着手できる Phase が別の作業に従属しているなら、それを書く。無ければ「無し」。
+If the Phase you can start depends on another task, write it. If none, write "None".
 `;
 }

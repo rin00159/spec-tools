@@ -1,7 +1,7 @@
-// packages/ / tools/ / examples/ 配下の *.test.ts をテキストとして走査し、
-// テスト名先頭の条項 ID(必須)と、末尾 `[K-...]` 併記の条項 ID(任意)を集める。
-// テストは静的パース(実行しない) — vitest の `it()`/`test()` はグローバル関数のため
-// 実行環境なしで文字列だけを取り出す。
+// Scans *.test.ts under packages/ / tools/ / examples/ as text,
+// and collects the clause ID at the beginning of the test name (mandatory) and the clause ID appended with `[K-...]` at the end (optional).
+// Tests are parsed statically (not executed) — vitest's `it()`/`test()` are global functions, so
+// we just extract strings without an execution environment.
 
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -9,9 +9,9 @@ import { join } from 'node:path';
 export interface TestNameEntry {
 	readonly file: string;
 	readonly name: string;
-	/** テスト名先頭の条項 ID。無ければ Q1 違反。 */
+	/** The clause ID at the beginning of the test name. If absent, it violates Q1. */
 	readonly leadingId: string | undefined;
-	/** 先頭 ID + 末尾 `[K-...]` 併記の全参照 ID。 */
+	/** All referenced IDs: leading ID + appended `[K-...]` at the end. */
 	readonly referencedIds: readonly string[];
 }
 

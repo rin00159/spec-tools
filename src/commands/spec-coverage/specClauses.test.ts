@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { parseSpecClauses } from './specClauses.ts';
 
 async function createFixtureRepo(): Promise<string> {
-	return await mkdtemp(join(tmpdir(), 'kata2-spec-clauses-'));
+	return await mkdtemp(join(tmpdir(), 'scope-spec-clauses-'));
 }
 
 describe('parseSpecClauses', () => {
@@ -16,18 +16,21 @@ describe('parseSpecClauses', () => {
 		await writeFile(
 			join(specDir, '01-test.md'),
 			`
-## K-CORE-DEF-001 テスト
-**属性**: \`status: active\` / \`since: 0.1\` / \`kind: 規範\` / \`impl: v0_1_1\`
+## K-CORE-DEF-001 Test
+**Attributes**: \`status: active\` / \`since: 0.1\` / \`kind: normative\` / \`impl: v0_1_1\`
 `,
 			'utf8',
 		);
 
-		const clauses = await parseSpecClauses([specDir]);
+		const clauses = await parseSpecClauses([specDir], {
+			attrPattern: '^\\*\\*Attributes\\*\\*: \\`status: (?<status>active|withdrawn)\\` / \\`since: (?<since>[\\d.]+)\\` / \\`kind: (?<kind>normative|informational)\\` / \\`impl: (?<impl>[^`]+)\\`\\s*$',
+			normativeKinds: ['normative'],
+		});
 		expect(clauses.length).toBe(1);
 		expect(clauses[0].id).toBe('K-CORE-DEF-001');
-		expect(clauses[0].title).toBe('テスト');
+		expect(clauses[0].title).toBe('Test');
 		expect(clauses[0].status).toBe('active');
-		expect(clauses[0].kind).toBe('規範');
+		expect(clauses[0].kind).toBe('normative');
 		expect(clauses[0].isNormative).toBe(true);
 		expect(clauses[0].isActive).toBe(true);
 	});
@@ -70,16 +73,19 @@ describe('parseSpecClauses', () => {
 		await writeFile(
 			join(specDir, '01-test.md'),
 			`
-## K-CORE-DEF-001 テスト
-**属性**: \`status: withdrawn\` / \`since: 0.1\` / \`kind: 情報\` / \`impl: v0_1_1\`
+## K-CORE-DEF-001 Test
+**Attributes**: \`status: withdrawn\` / \`since: 0.1\` / \`kind: informational\` / \`impl: v0_1_1\`
 `,
 			'utf8',
 		);
 
-		const clauses = await parseSpecClauses([specDir]);
+		const clauses = await parseSpecClauses([specDir], {
+			attrPattern: '^\\*\\*Attributes\\*\\*: \\`status: (?<status>active|withdrawn)\\` / \\`since: (?<since>[\\d.]+)\\` / \\`kind: (?<kind>normative|informational)\\` / \\`impl: (?<impl>[^`]+)\\`\\s*$',
+			normativeKinds: ['normative'],
+		});
 		expect(clauses.length).toBe(1);
 		expect(clauses[0].status).toBe('withdrawn');
-		expect(clauses[0].kind).toBe('情報');
+		expect(clauses[0].kind).toBe('informational');
 		expect(clauses[0].isNormative).toBe(false);
 		expect(clauses[0].isActive).toBe(false);
 	});

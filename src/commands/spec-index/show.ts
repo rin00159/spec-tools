@@ -1,4 +1,4 @@
-// 条項本文の取り出し。**spec のファイルを全文読む代わりにこれを使う。**
+// Extract the body of a clause. **Use this instead of reading the entire spec file.**
 //
 //   pnpm spec:show K-CORE-TYPE-011 [K-CORE-DEF-012 ...]
 

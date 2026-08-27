@@ -1,7 +1,7 @@
-// spec 索引の生成と鮮度検査。
+// Generation and freshness check of the spec index.
 //
-//   pnpm spec:index          # spec/INDEX.md を生成(または更新)
-//   pnpm check:spec-index    # 生成物が最新かを検査(pnpm lint の一部)
+//   pnpm spec:index          # Generate (or update) spec/INDEX.md
+//   pnpm check:spec-index    # Check if the generated file is up to date (part of pnpm lint)
 
 import { readFile, writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';

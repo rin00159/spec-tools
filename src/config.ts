@@ -34,11 +34,11 @@ export interface SpecToolsConfig {
 	specCoverage?: {
 		conformanceRoots?: string[];
 		scanRoots?: string[];
-		/** 走査対象とするソースコードの拡張子 (例: ['.ts', '.tsx', '.py', '.go']) */
+		/** Extensions of source code to be scanned (e.g., ['.ts', '.tsx', '.py', '.go']) */
 		sourceExtensions?: string[];
-		/** テストファイルとみなす接尾辞 (例: ['.test.ts', '_test.py', '_test.go']) */
+		/** Suffixes to consider as test files (e.g., ['.test.ts', '_test.py', '_test.go']) */
 		testSuffixes?: string[];
-		/** テスト名抽出用の正規表現文字列。キャプチャグループ1（または最初の有効なグループ）がテスト名になること。 */
+		/** Regex string for extracting test names. Capture group 1 (or the first valid group) must be the test name. */
 		testNamePatterns?: string[];
 	};
 	docRef?: {

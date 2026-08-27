@@ -1,11 +1,11 @@
-// decisions / task の参照解決と表示。
-// 正本は docs/decisions/109 決定4・決定8 / docs/plan/0_3/phase5.md Scope 6。
+// Reference resolution and display of decisions / task.
+// The primary source is docs/decisions/109 Decision 4 and Decision 8 / docs/plan/0_3/phase5.md Scope 6.
 //
 //   pnpm decision:show 105
-//   pnpm decision:show @kata2/target-firebase_cloudflare-html:105
-//   pnpm decision:show kata2:200
+//   pnpm decision:show @scope/target-firebase_cloudflare-html:105
+//   pnpm decision:show scope:200
 //   pnpm task:show 061
-//   pnpm task:show @kata2/targetlib-schemaui:200
+//   pnpm task:show @scope/targetlib-schemaui:200
 
 import { readdir, readFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
@@ -19,7 +19,7 @@ export interface ResolvedDoc {
 	readonly content: string;
 }
 
-// ファイル名に `_` を含む legacy が在る(036-v0_2-after-tasks.md)。
+// There is a legacy file containing `_` in the file name (036-v0_2-after-tasks.md).
 const NUMBERED_FILE_RE = /^(\d{3})-[a-z0-9_-]+\.md$/;
 
 async function findNumberedFile(dir: string, targetNum: number): Promise<string | undefined> {
@@ -32,7 +32,7 @@ async function findNumberedFile(dir: string, targetNum: number): Promise<string 
 			}
 		}
 	} catch {
-		// ディレクトリが無い場合など
+		// E.g. when directory does not exist
 	}
 	return undefined;
 }
@@ -47,11 +47,11 @@ async function listNumberedFiles(dir: string): Promise<string[]> {
 }
 
 /**
- * stub ファイルかどうか判定し、移設先があるならそのパス・参照を返す。
+ * Determines if it is a stub file, and if there is a destination, returns its path/reference.
  */
 function parseStubTarget(content: string): string | undefined {
-	// 例: **移設先**: `@kata2/pkg:105`\n`packages/pkg/docs/decisions/105-xxx.md`
-	const match = content.match(/\*\*移設先\*\*:\s*`([^`]+)`/);
+	// E.g.: **Moved To**: `@scope/pkg:105`\n`packages/pkg/docs/decisions/105-xxx.md`
+	const match = content.match(/\*\*Moved To\*\*:\s*`([^`]+)`/);
 	return match?.[1];
 }
 
@@ -78,7 +78,7 @@ export async function resolveDocRef(
 	const subDir = docType === 'decision' ? decisionDir : taskDir;
 	const pkgs = packages ?? (await discoverPackages(repoRoot));
 
-	// 1. bare 番号 (例: "105", "063")
+	// 1. bare number (e.g. "105", "063")
 	if (/^\d+$/.test(ref)) {
 		const num = Number(ref);
 		if (num >= startNumber) {
@@ -99,7 +99,7 @@ export async function resolveDocRef(
 		const rawContent = await readFile(filePath, 'utf8');
 		const stubTarget = parseStubTarget(rawContent);
 		if (stubTarget) {
-			// stub の場合は移設先を解決して表示
+			// If it is a stub, resolve and display the destination
 			if (stubTarget.includes(':')) {
 				return await resolveDocRef(repoRoot, docType, stubTarget, pkgs, decisionDir, taskDir);
 			}
@@ -119,7 +119,7 @@ export async function resolveDocRef(
 		};
 	}
 
-	// 2. 名前空間付き参照 (例: "@kata2/targetlib-schemaui:200", "kata2:200")
+	// 2. namespaced reference (e.g. "@scope/targetlib-schemaui:200", "scope:200")
 	if (ref.includes(':')) {
 		const colonIdx = ref.lastIndexOf(':');
 		const pkgName = ref.slice(0, colonIdx);
@@ -173,7 +173,7 @@ export async function runShow(
 	if (refs.length === 0) {
 		console.error(`Usage: spec-tools doc-ref show ${docType} <ref> [ref...]`);
 		console.error(`  Example: spec-tools doc-ref show ${docType} 105`);
-		console.error(`           spec-tools doc-ref show ${docType} @kata2/core:200`);
+		console.error(`           spec-tools doc-ref show ${docType} @scope/pkg:200`);
 		process.exitCode = 2;
 		return;
 	}

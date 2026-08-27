@@ -1,7 +1,7 @@
-// decisions / task 参照解決のテスト。
-// 正本は docs/decisions/109 決定4 / docs/plan/0_3/phase5.md Scope 6。
+// Tests for decisions / task reference resolution.
+// The primary source is docs/decisions/109 Decision 4 / docs/plan/0_3/phase5.md Scope 6.
 //
-// テスト名に条項 ID を置いていないのは意図的(tools/ は問い1 の対象外)。
+// The omission of the clause ID in the test name is intentional (tools/ is out of scope for Question 1).
 
 import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -10,78 +10,78 @@ import { describe, expect, it } from 'vitest';
 import { resolveDocRef } from './show.ts';
 
 async function createFixtureRepo(): Promise<string> {
-	return await mkdtemp(join(tmpdir(), 'kata2-doc-show-'));
+	return await mkdtemp(join(tmpdir(), 'scope-doc-show-'));
 }
 
 describe('resolveDocRef', () => {
-	it('legacy の bare 番号は root の docs/decisions から解決する', async () => {
+	it('resolves legacy bare numbers from root docs/decisions', async () => {
 		const repo = await createFixtureRepo();
-		await writeFile(join(repo, 'package.json'), JSON.stringify({ name: 'kata2' }), 'utf8');
+		await writeFile(join(repo, 'package.json'), JSON.stringify({ name: 'scope' }), 'utf8');
 		const decisionsDir = join(repo, 'docs', 'decisions');
 		await mkdir(decisionsDir, { recursive: true });
 		await writeFile(
 			join(decisionsDir, '105-fch-artifact.md'),
-			'# 105 FCH の生成物の形\n\n本文105',
+			'# 105 FCH Artifact Shape\n\nBody 105',
 			'utf8',
 		);
 
 		const resolved = await resolveDocRef(repo, 'decision', '105');
-		expect(resolved.content).toContain('# 105 FCH の生成物の形');
+		expect(resolved.content).toContain('# 105 FCH Artifact Shape');
 		expect(resolved.reference).toBe('root:105');
 	});
 
-	it('200 以降の bare 番号は error にする', async () => {
+	it('throws an error for bare numbers >= 200', async () => {
 		const repo = await createFixtureRepo();
-		await writeFile(join(repo, 'package.json'), JSON.stringify({ name: 'kata2' }), 'utf8');
+		await writeFile(join(repo, 'package.json'), JSON.stringify({ name: 'scope' }), 'utf8');
 		await expect(resolveDocRef(repo, 'decision', '200')).rejects.toThrow(/must be namespaced/);
 	});
 
-	it('名前空間付き参照 (@kata2/pkg:200) を解決する', async () => {
+	it('resolves namespaced references (@scope/pkg:200)', async () => {
 		const repo = await createFixtureRepo();
-		await writeFile(join(repo, 'package.json'), JSON.stringify({ name: 'kata2' }), 'utf8');
+		await writeFile(join(repo, 'package.json'), JSON.stringify({ name: 'scope' }), 'utf8');
 		const pkgDir = join(repo, 'packages', 'schemaui');
 		const decisionsDir = join(pkgDir, 'docs', 'decisions');
 		await mkdir(decisionsDir, { recursive: true });
 		await writeFile(
 			join(pkgDir, 'package.json'),
-			JSON.stringify({ name: '@kata2/schemaui' }),
+			JSON.stringify({ name: '@scope/schemaui' }),
 			'utf8',
 		);
 		await writeFile(
 			join(decisionsDir, '200-new-decision.md'),
-			'# 200 新しい決定\n\n本文200',
+			'# 200 New Decision\n\nBody 200',
 			'utf8',
 		);
 
-		const resolved = await resolveDocRef(repo, 'decision', '@kata2/schemaui:200');
-		expect(resolved.content).toContain('# 200 新しい決定');
-		expect(resolved.reference).toBe('@kata2/schemaui:200');
+		const resolved = await resolveDocRef(repo, 'decision', '@scope/schemaui:200');
+		expect(resolved.content).toContain('# 200 New Decision');
+		expect(resolved.reference).toBe('@scope/schemaui:200');
 	});
 
-	it('stub ファイルの場合は移設先の本文を解決して返す', async () => {
+	it('resolves and returns the body of the destination for stub files', async () => {
 		const repo = await createFixtureRepo();
-		await writeFile(join(repo, 'package.json'), JSON.stringify({ name: 'kata2' }), 'utf8');
+		await writeFile(join(repo, 'package.json'), JSON.stringify({ name: 'scope' }), 'utf8');
 		const rootDecisionsDir = join(repo, 'docs', 'decisions');
 		await mkdir(rootDecisionsDir, { recursive: true });
 
 		const pkgDir = join(repo, 'packages', 'html');
 		const pkgDecisionsDir = join(pkgDir, 'docs', 'decisions');
 		await mkdir(pkgDecisionsDir, { recursive: true });
-		await writeFile(join(pkgDir, 'package.json'), JSON.stringify({ name: '@kata2/html' }), 'utf8');
+		await writeFile(join(pkgDir, 'package.json'), JSON.stringify({ name: '@scope/html' }), 'utf8');
 		await writeFile(
 			join(pkgDecisionsDir, '105-fch-shape.md'),
-			'# 105 FCH の生成物の形(実体)\n\n移設先本文',
+			'# 105 FCH Artifact Shape (Entity)\n\nDestination Body',
 			'utf8',
 		);
 
-		// stub を root に置く
+		// Place stub at the root
 		await writeFile(
 			join(rootDecisionsDir, '105-fch-shape.md'),
-			`# 105 FCH の生成物の形\n\n**移設先**: \`@kata2/html:105\`\n`,
+			`# 105 FCH Artifact Shape\n\n**Moved To**: \`@scope/html:105\`\n`,
 			'utf8',
 		);
 
 		const resolved = await resolveDocRef(repo, 'decision', '105');
-		expect(resolved.content).toContain('移設先本文');
+		expect(resolved.content).toContain('Destination Body');
 	});
 });

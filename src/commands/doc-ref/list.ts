@@ -1,19 +1,19 @@
-// decisions / task の一覧。依存閉包を走査して、実体の在り処ごとに並べる。
-// 正本は docs/decisions/109 決定4・決定8 / docs/plan/0_3/done/phase8.md R3。
+// List of decisions / task. Scans the dependency closure and groups them by the location of the entity.
+// The primary source is docs/decisions/109 Decision 4 and Decision 8 / docs/plan/0_3/done/phase8.md R3.
 //
 //   pnpm task:list
-//   pnpm task:list --package @kata2/core
+//   pnpm task:list --package @scope/core
 //
-// 一覧(索引)は実体を持つ側の docs/task/INDEX.md が持つ(tools/doc-ref/src/indexGen.ts)。
-// こちらは依存閉包を横断して見るための出力である。
-// docs/task/README.md に残るのは「どれを先にやるか」の表だけ(決定8)。
+// The list (index) is held by docs/task/INDEX.md on the entity side (tools/doc-ref/src/indexGen.ts).
+// This is an output to view across the dependency closure.
+// The only thing left in docs/task/README.md is the "which to do first" table (Decision 8).
 
 import { readdirSync, readFileSync, realpathSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { discoverPackages, type PackageEntry } from './closure.ts';
 import type { DocType } from './show.ts';
 
-// ファイル名に `_` を含む legacy が在る(036-v0_2-after-tasks.md)。
+// There is a legacy file containing `_` in the file name (036-v0_2-after-tasks.md).
 const NUMBERED_FILE_RE = /^(\d{3})-[a-z0-9_-]+\.md$/;
 
 export interface DocEntry {
@@ -35,18 +35,18 @@ function firstTitle(content: string): string {
 }
 
 function firstState(content: string, statePattern?: RegExp): string {
-	const re = statePattern ?? /^\*\*(?:状態|State)\*\*:\s*(.+)$/m;
+	const re = statePattern ?? /^\*\*State\*\*:\s*(.+)$/m;
 	const m = content.match(re);
 	if (!m?.[1]) {
 		return '—';
 	}
-	// 太字・リンクを落として1行に畳む
+	// Drop bold and links, and collapse into a single line
 	return m[1].replace(/\*\*/g, '').replace(/\s+/g, ' ').trim();
 }
 
 /**
- * repoRoot 起点で、根と依存閉包内のすべての package の docs/<subDir>/ を走査する。
- * 根の stub(移設先を指すもの)は実体側に畳み、一覧には出さない。
+ * Starting from repoRoot, scans docs/<subDir>/ of the root and all packages in the dependency closure.
+ * Root stubs (pointing to moved locations) are collapsed into the entity side and not shown in the list.
  */
 export function collectDocs(
 	repoRoot: string,
@@ -60,13 +60,13 @@ export function collectDocs(
 ): DocEntry[] {
 	const subDir = docType === 'decision' ? decisionDir : taskDir;
 	const entries: DocEntry[] = [];
-	// discoverPackages は realpath で畳むので、根の判定も realpath で揃える(macOS の /var → /private/var)。
+	// discoverPackages collapses with realpath, so the root determination is also aligned with realpath (/var -> /private/var on macOS).
 	const realRoot = realpathSync(repoRoot);
 
 	const stateRe = statePatternStr ? new RegExp(statePatternStr, 'm') : undefined;
 	const stubRe = stubPatternStr
 		? new RegExp(stubPatternStr)
-		: /\*\*(?:移設先|Moved To)\*\*:\s*`([^`]+)`/;
+		: /\*\*Moved To\*\*:\s*`([^`]+)`/;
 
 	for (const pkg of packages) {
 		const dir = join(pkg.dir, subDir);
@@ -87,7 +87,7 @@ export function collectDocs(
 			const content = readFileSync(filePath, 'utf8');
 			const isStub = stubRe.test(content);
 			if (isStub) {
-				// 実体は移設先の package 側で拾う
+				// The entity is picked up on the moved package side
 				continue;
 			}
 			const bare = isRoot && Number(num) < startNumber;
@@ -120,7 +120,7 @@ function render(
 	}
 
 	const owners = [...byOwner.keys()].sort((a, b) => {
-		// kata2(根)を先頭に、以降は名前順
+		// scope (root) at the top, then by name
 		if (a.includes('/') !== b.includes('/')) {
 			return a.includes('/') ? 1 : -1;
 		}

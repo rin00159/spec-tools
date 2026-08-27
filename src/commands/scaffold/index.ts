@@ -1,11 +1,11 @@
-// 採番・命名を伴うファイルの生成と現在地の更新。
+// File generation with numbering/naming and updating the current location.
 //
-//   pnpm decision:new <kebab-slug> [タイトル...]   # docs/decisions/<次番号>-<slug>.md
-//   pnpm task:new <kebab-slug> [タイトル...]       # docs/task/<次番号>-<slug>.md
-//   pnpm acceptance:new                            # docs/acceptance/phase-v<版>-<Phase>.md
-//   pnpm phase:set v0_2_25                         # spec/PHASE を更新
+//   pnpm decision:new <kebab-slug> [title...]   # docs/decisions/<next-number>-<slug>.md
+//   pnpm task:new <kebab-slug> [title...]       # docs/task/<next-number>-<slug>.md
+//   pnpm acceptance:new                            # docs/acceptance/phase-v<version>-<Phase>.md
+//   pnpm phase:set v0_2_25                         # Update spec/PHASE
 //
-// 番号とファイル名を人(や AI)が数えないための入口である(docs/decisions/089)。
+// It is an entry point so that humans (or AI) don't have to count numbers and filenames (docs/decisions/089).
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';

@@ -1,9 +1,9 @@
-// markdown 文書中の decisions / task 参照の走査と実在検証。
-// 正本は docs/decisions/109 決定4・決定8 / kata2:200 / docs/plan/0_3/phase7.md 完了判定5。
+// Scanning and existence verification of decisions / task references in markdown documents.
+// The primary source is docs/decisions/109 Decision 4 and Decision 8 / scope:200 / docs/plan/0_3/phase7.md Completion Criterion 5.
 //
-// docs/decisions/<NNN> 形式・docs/task/<NNN> 形式および <name>:<NNN> 形式
-// (@kata2/core:200, kata2:200 等)の参照を走査し、実体または stub が実在することを機械検査する。
-// 空振り防止のため、走査対象が0件または参照が0件の場合は throw する。
+// Scans references in docs/decisions/<NNN> format, docs/task/<NNN> format, and <name>:<NNN> format
+// (e.g. @scope/core:200, scope:200) and mechanically verifies that the entity or stub exists.
+// Throws an error if there are 0 target files or 0 references to prevent false positives.
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -29,7 +29,7 @@ export interface ExtractedRef {
 	readonly line: number;
 }
 
-/** 例示や文法説明のパターン(実在検査の対象外) */
+/** Patterns for examples and syntax explanations (excluded from existence check) */
 function isExampleLine(line: string, examplePatterns?: readonly RegExp[]): boolean {
 	if (examplePatterns) {
 		return examplePatterns.some((re) => re.test(line));
@@ -168,7 +168,7 @@ export async function validateDocRefsInRepo(
 	const pkgs = options?.packages ?? (await discoverPackages(repoRoot));
 	const decisionDir = options?.decisionDir ?? 'docs/decisions';
 	const taskDir = options?.taskDir ?? 'docs/task';
-	const namespacePattern = options?.namespacePattern ?? '(@kata2\\/[a-z0-9_-]+|kata2)';
+	const namespacePattern = options?.namespacePattern ?? '(@scope\\/[a-z0-9_-]+|scope)';
 	const historicalPrefixes = options?.historicalPrefixes ?? HISTORICAL_PREFIXES;
 	const exampleRegexes = options?.examplePatterns?.map((p) => new RegExp(p)) ?? [];
 
@@ -196,14 +196,14 @@ export async function validateDocRefsInRepo(
 	try {
 		rootDecisionsFiles = readdirSync(join(repoRoot, decisionDir));
 	} catch {
-		// docs/decisions が存在しない場合
+		// When docs/decisions does not exist
 	}
 
 	let rootTaskFiles: string[] = [];
 	try {
 		rootTaskFiles = readdirSync(join(repoRoot, taskDir));
 	} catch {
-		// docs/task が存在しない場合
+		// When docs/task does not exist
 	}
 
 	for (const filePath of markdownFiles) {
@@ -221,7 +221,7 @@ export async function validateDocRefsInRepo(
 				const numStr = refItem.ref;
 				const subDir = refItem.type === 'decision' ? decisionDir : taskDir;
 				const rootFilesForType = refItem.type === 'decision' ? rootDecisionsFiles : rootTaskFiles;
-				// 実体でも stub でもよい。根に <NNN>- で始まる md が在れば参照は切れていない。
+				// Can be an entity or a stub. If an md starting with <NNN>- exists at the root, the reference is not broken.
 				const found = rootFilesForType.some((f) => f.startsWith(`${numStr}-`) && f.endsWith('.md'));
 				if (!found) {
 					violations.push(

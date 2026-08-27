@@ -1,7 +1,7 @@
-// task 索引(docs/task/INDEX.md)の生成のテスト。
-// 正本は spec/00-conventions.md「kata2 の役割と正本の優先順位」/ docs/decisions/110 決定4。
+// Tests for generating task index (docs/task/INDEX.md).
+// Source of truth: spec/00-conventions.md "scope's role and source of truth priority" / docs/decisions/110 Decision 4.
 //
-// テスト名に条項 ID を置いていないのは意図的(tools/ は問い1 の対象外)。
+// It is intentional that there is no article ID in the test name (tools/ is outside the scope of Question 1).
 
 import { realpathSync } from 'node:fs';
 import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
@@ -14,9 +14,9 @@ import { planIndexes } from './indexGen.ts';
 const _REPO_ROOT = resolve(import.meta.dirname, '../../..');
 
 async function createFixtureRepo(): Promise<string> {
-	// macOS の /var → /private/var を畳む(discoverPackages は realpath を返す)。
-	const repo = realpathSync(await mkdtemp(join(tmpdir(), 'kata2-task-index-')));
-	await writeFile(join(repo, 'package.json'), JSON.stringify({ name: 'kata2' }), 'utf8');
+	// Resolves macOS /var -> /private/var (discoverPackages returns realpath).
+	const repo = realpathSync(await mkdtemp(join(tmpdir(), 'scope-task-index-')));
+	await writeFile(join(repo, 'package.json'), JSON.stringify({ name: 'scope' }), 'utf8');
 	await writeFile(join(repo, 'pnpm-workspace.yaml'), 'packages:\n  - packages/*\n', 'utf8');
 	return repo;
 }
@@ -27,25 +27,25 @@ async function writeTask(dir: string, name: string, body: string): Promise<void>
 }
 
 describe('planIndexes', () => {
-	it('実体を持つ側ごとに索引を作り、根の stub は載せない', async () => {
+	it('creates an index for each package that has actual docs, and does not include root stubs', async () => {
 		const repo = await createFixtureRepo();
 		await writeTask(
 			join(repo, 'docs', 'task'),
 			'046-moved.md',
-			'# 046 移設済み\n\n**移設先**: `@kata2/core:046`\n',
+			'# 046 Moved\n\n**Moved To**: `@scope/core:046`\n',
 		);
 		await writeTask(
 			join(repo, 'docs', 'task'),
 			'051-stays.md',
-			'# 051 kata2 に残る\n\n**状態**: 未着手\n',
+			'# 051 Remains in scope\n\n**State**: Not started\n',
 		);
 		const pkgDir = join(repo, 'packages', 'core');
 		await mkdir(pkgDir, { recursive: true });
-		await writeFile(join(pkgDir, 'package.json'), JSON.stringify({ name: '@kata2/core' }), 'utf8');
+		await writeFile(join(pkgDir, 'package.json'), JSON.stringify({ name: '@scope/core' }), 'utf8');
 		await writeTask(
 			join(pkgDir, 'docs', 'task'),
 			'046-moved.md',
-			'# 046 移設済み\n\n**状態**: 未着手\n',
+			'# 046 Moved\n\n**State**: Not started\n',
 		);
 
 		const packages = await discoverPackages(repo);
@@ -60,20 +60,20 @@ describe('planIndexes', () => {
 
 		const root = writes.find((w) => w.path === join(repo, 'docs', 'task', 'INDEX.md'));
 		expect(root?.content).toContain('051');
-		// 根の stub は実体側で数える。根の索引には出ない。
+		// Root stubs are counted on the entity side. They do not appear in the root index.
 		expect(root?.content).not.toContain('046');
 		expect(root?.content).toContain('Do not edit manually');
 	});
 
-	it('実体が0件になった索引は削除の対象になる', async () => {
+	it('indexes with 0 items become deletion targets', async () => {
 		const repo = await createFixtureRepo();
 		await writeTask(
 			join(repo, 'docs', 'task'),
 			'046-moved.md',
-			'# 046 移設済み\n\n**移設先**: `@kata2/core:046`\n',
+			'# 046 Moved\n\n**Moved To**: `@scope/core:046`\n',
 		);
-		// 根は stub だけ。旧い索引が残っている状態を作る。
-		await writeFile(join(repo, 'docs', 'task', 'INDEX.md'), '# task 索引 — kata2(1件)\n', 'utf8');
+		// The root only has stubs. Creates a state where an old index remains.
+		await writeFile(join(repo, 'docs', 'task', 'INDEX.md'), '# task Index — scope (1 item)\n', 'utf8');
 
 		const packages = await discoverPackages(repo);
 		const { writes, removals } = planIndexes(repo, 'task', packages, {});

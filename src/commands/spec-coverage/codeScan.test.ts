@@ -7,7 +7,7 @@ import { DEFAULT_CLAUSE_ID_PATTERN } from './specClauses.ts';
 const FIXTURES_DIR = 'fixtures/scan-test';
 
 describe('codeScan', () => {
-	it('K-CORE-ERR-002: extractClauseRefsFromText は既知の条項 ID を unknownRefs に含めない', async () => {
+	it('K-CORE-ERR-002: extractClauseRefsFromText does not include known clause IDs in unknownRefs', async () => {
 		const text = await readFile(join(FIXTURES_DIR, 'valid.ts'), 'utf8');
 		const known = new Set(['K-CORE-MODEL-001', 'K-CORE-MODEL-002']);
 		const res = extractClauseRefsFromText(text, 'src/foo.ts', known, DEFAULT_CLAUSE_ID_PATTERN);
@@ -15,7 +15,7 @@ describe('codeScan', () => {
 		expect(res.todoRefs).toHaveLength(0);
 	});
 
-	it('K-CORE-ERR-002: extractClauseRefsFromText は未知の条項 ID を検出する', async () => {
+	it('K-CORE-ERR-002: extractClauseRefsFromText detects unknown clause IDs', async () => {
 		const text = await readFile(join(FIXTURES_DIR, 'dangling.ts'), 'utf8');
 		const known = new Set(['K-CORE-MODEL-001']);
 		const res = extractClauseRefsFromText(text, 'src/foo.ts', known, DEFAULT_CLAUSE_ID_PATTERN);
@@ -25,7 +25,7 @@ describe('codeScan', () => {
 		]);
 	});
 
-	it('K-CORE-ERR-002: TODO(K-...) 記法の条項 ID は unknownRefs ではなく todoRefs に入る', async () => {
+	it('K-CORE-ERR-002: Clause IDs in TODO(K-...) notation go into todoRefs instead of unknownRefs', async () => {
 		const text = await readFile(join(FIXTURES_DIR, 'todo.ts'), 'utf8');
 		const known = new Set(['K-CORE-MODEL-001']);
 		const res = extractClauseRefsFromText(text, 'src/bar.ts', known, DEFAULT_CLAUSE_ID_PATTERN);
@@ -35,7 +35,7 @@ describe('codeScan', () => {
 		]);
 	});
 
-	it('K-CORE-ERR-002: 同一行に TODO(K-...) と素の未知 ID が混在する場合も正しく仕分ける', async () => {
+	it('K-CORE-ERR-002: Sorts correctly even when TODO(K-...) and plain unknown IDs are mixed on the same line', async () => {
 		const text = await readFile(join(FIXTURES_DIR, 'mixed.ts'), 'utf8');
 		const known = new Set(['K-CORE-MODEL-001']);
 		const res = extractClauseRefsFromText(text, 'src/baz.ts', known, DEFAULT_CLAUSE_ID_PATTERN);
@@ -47,7 +47,7 @@ describe('codeScan', () => {
 		]);
 	});
 
-	it('K-CORE-ERR-002: scanSourceCodeRefs は fixture ディレクトリ内の意図的な dangling 参照を検出できる', async () => {
+	it('K-CORE-ERR-002: scanSourceCodeRefs can detect intentional dangling references in the fixture directory', async () => {
 		const known = new Set(['K-CORE-MODEL-001']);
 		const res = await scanSourceCodeRefs(
 			['fixtures/dangling-ref'],

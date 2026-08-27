@@ -1,4 +1,4 @@
-// spec/*.md の条項属性行(00-conventions.md)をパースする。
+// Parse the clause attribute lines (00-conventions.md) of spec/*.md.
 
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -10,12 +10,12 @@ export interface ClauseInfo {
 	readonly status: string;
 	readonly since: string;
 	readonly kind: string;
-	/** plan 版 + Phase。`since`(spec version)とは別概念(00-conventions.md)。 */
+	/** plan version + Phase. A different concept from `since` (spec version) (00-conventions.md). */
 	readonly impl: ImplPoint;
 	readonly file: string;
-	/** 見出し行(1始まり)。`spec:show` / `spec:index` が位置を示すために使う。 */
+	/** Heading line (1-indexed). Used by `spec:show` / `spec:index` to indicate position. */
 	readonly line: number;
-	/** 見出しの条項 ID より後ろの部分(例: 「Entity」)。 */
+	/** The part after the clause ID in the heading (e.g., "Entity"). */
 	readonly title: string;
 	readonly isNormative: boolean;
 	readonly isActive: boolean;
@@ -48,9 +48,9 @@ export async function parseSpecClauses(
 	);
 	const attrRe = new RegExp(
 		formatConfig?.attrPattern ??
-			`^\\*\\*属性\\*\\*: \`status: (?<status>active|withdrawn)\` / \`since: (?<since>[\\d.]+)\` / \`kind: (?<kind>規範|情報)\` / \`impl: (?<impl>${IMPL_TOKEN_SOURCE})\`\\s*$`,
+			`^\\*\\*Attributes\\*\\*: \`status: (?<status>active|withdrawn)\` / \`since: (?<since>[\\d.]+)\` / \`kind: (?<kind>normative|informative)\` / \`impl: (?<impl>${IMPL_TOKEN_SOURCE})\`\\s*$`,
 	);
-	const normativeKinds = new Set(formatConfig?.normativeKinds ?? ['規範']);
+	const normativeKinds = new Set(formatConfig?.normativeKinds ?? ['normative']);
 	const activeStatuses = new Set(formatConfig?.activeStatuses ?? ['active']);
 
 	const files: string[] = [];

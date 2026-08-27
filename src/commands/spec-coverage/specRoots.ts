@@ -1,5 +1,5 @@
-// 条項ファイルの走査ルート(根の spec/ と packages/*/docs/spec/)を発見する。
-// 正本は spec/00-conventions.md「条項ファイルの置き場と走査ルート」。
+// Discover the scanning roots of clause files (root spec/ and packages/*/docs/spec/).
+// The original is spec/00-conventions.md "Clause file location and scanning root".
 
 import { readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -13,11 +13,11 @@ async function isDirectory(path: string): Promise<boolean> {
 	}
 }
 
-// 条項ファイルの走査ルートを発見する。
-// 根の spec/ と packages/<pkg>/docs/spec/ を glob 的に探索し、
-// 実在するルートの絶対パスを昇順で返す。
-// package 名は直書きせず、ディレクトリ走査で発見する。
-// 発見したルートが0件のときは throw する(空振り防止)。
+// Discover the scanning roots of clause files.
+// Explores the root spec/ and packages/<pkg>/docs/spec/ in a glob-like manner,
+// and returns the absolute paths of the existing roots in ascending order.
+// The package name is not hardcoded, but discovered by directory traversal.
+// Throws if 0 roots are found (prevents false positives).
 export async function discoverSpecRoots(repoRoot: string): Promise<ReadonlyArray<string>> {
 	const roots: string[] = [];
 

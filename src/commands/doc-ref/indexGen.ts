@@ -1,12 +1,12 @@
-// task 索引(docs/task/INDEX.md)の生成と鮮度検査。
-// 正本は spec/00-conventions.md「kata2 の役割と正本の優先順位」/ docs/decisions/110 決定4:
-// **一覧・索引は、実体を持つ側で生成する(必須)。**
+// Generation and freshness check of task index (docs/task/INDEX.md).
+// Source of truth: spec/00-conventions.md "scope's role and source of truth priority" / docs/decisions/110 Decision 4:
+// **Lists and indexes are generated on the side that has the actual docs (required).**
 //
-//   pnpm task:index          # 根と各 package の docs/task/INDEX.md を生成(または更新)
-//   pnpm check:task-index    # 生成物が現状と食い違っていたら失敗する(pnpm lint の一部)
+//   pnpm task:index          # Generate (or update) docs/task/INDEX.md for root and each package
+//   pnpm check:task-index    # Fails if the generated product differs from the current state (part of pnpm lint)
 //
-// 生成物と手書きを同一ファイルに混ぜない(C2)ので、README.md は生成しない —
-// 規約本文と着手順の表は手書きのまま docs/task/README.md に残る。
+// Generated content and handwritten content are not mixed in the same file (C2), so README.md is not generated —
+// The conventions text and order-of-execution table remain handwritten in docs/task/README.md.
 
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, join, relative } from 'node:path';
@@ -14,7 +14,7 @@ import { discoverPackages, type PackageEntry } from './closure.ts';
 import { collectDocs, type DocEntry } from './list.ts';
 import type { DocType } from './show.ts';
 
-/** 表のセルを壊す文字だけを逃がす(本文は task 側が正本なので加工しない)。 */
+/** Escape only characters that break table cells (the task side is the source of truth, so we don't modify the body). */
 function cell(text: string): string {
 	return text.replace(/\|/g, '\\|');
 }
@@ -54,9 +54,9 @@ export function renderIndex(
 }
 
 export interface IndexPlan {
-	/** 書き出す索引。内容が既存と同じでも入る。 */
+	/** Indexes to write. Included even if the content is the same as existing. */
 	readonly writes: ReadonlyArray<{ path: string; content: string }>;
-	/** 実体が0件になったので消す索引。 */
+	/** Indexes to delete because there are 0 actual docs. */
 	readonly removals: readonly string[];
 }
 
@@ -89,7 +89,7 @@ export function planIndexes(
 			fullConfig.docRef?.statePattern,
 			fullConfig.docRef?.stubPattern,
 		);
-		// 実体が0件(stub だけ / 空)の package に索引は置かない。
+		// Do not place an index in a package with 0 actual docs (only stubs / empty).
 		if (entries.length === 0) {
 			if (existsSync(indexPath)) {
 				removals.push(indexPath);

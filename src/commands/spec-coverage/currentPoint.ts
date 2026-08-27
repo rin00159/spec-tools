@@ -1,7 +1,7 @@
-// 現在地(到達済みの版・Phase)の解決。正本は spec/00-conventions.md「現在地の在処」。
+// Resolution of the current point (reached version/Phase). The source of truth is "Location of the current point" in spec/00-conventions.md.
 //
-// 現在地は `spec/PHASE` 1箇所にだけ置く。`--phase` は一時的な上書き専用で、
-// **複数指定は error**(黙って先頭/末尾を採ると、打った値が無視されたことに気づけない)。
+// The current point is placed in only one location: `spec/PHASE`. `--phase` is solely for temporary overrides,
+// and **multiple specifications result in an error** (if we silently picked the first or last, the user wouldn't realize their input was ignored).
 
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -10,8 +10,8 @@ import { type ImplPoint, parseImplPoint } from './implPoint.ts';
 export const PHASE_FILE_NAME = 'PHASE';
 
 /**
- * `--phase` の上書き指定を1つだけ取り出す。
- * 未指定なら undefined。**複数指定・値欠落・書式違反はいずれも throw**。
+ * Extracts exactly one `--phase` override specification.
+ * Returns undefined if not specified. **Throws on multiple specifications, missing values, or format violations**.
  */
 export function readPhaseOverride(argv: readonly string[]): string | undefined {
 	const indices = argv.flatMap((arg, i) => (arg === '--phase' ? [i] : []));
@@ -35,7 +35,7 @@ export function readPhaseOverride(argv: readonly string[]): string | undefined {
 	return value;
 }
 
-/** `spec/PHASE` を読む。存在しない・書式違反は throw。 */
+/** Reads `spec/PHASE`. Throws if it does not exist or has an invalid format. */
 export async function readPhaseFile(specDir: string): Promise<ImplPoint> {
 	const path = join(specDir, PHASE_FILE_NAME);
 	let raw: string;
