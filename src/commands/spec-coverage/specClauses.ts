@@ -3,7 +3,7 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { ClauseFormatConfig } from '../../config.ts';
-import { IMPL_TOKEN_SOURCE, type ImplPoint, parseImplPoint } from './implPoint.ts';
+import { type ImplPoint, parseImplPoint } from './implPoint.ts';
 
 export interface ClauseInfo {
 	readonly id: string;
@@ -48,7 +48,7 @@ export async function parseSpecClauses(
 	);
 	const attrRe = new RegExp(
 		formatConfig?.attrPattern ??
-			`^\\*\\*属性\\*\\*: \`status: (?<status>active|withdrawn)\` / \`since: (?<since>[\\d.]+)\` / \`kind: (?<kind>規範|情報)\` / \`impl: (?<impl>${IMPL_TOKEN_SOURCE})\`\\s*$`,
+			`^\\\\*\\\\*属性\\\\*\\\\*:\\s*\`status:\\s*(?<status>[^\`]+)\`(?:,\\s*\`since:\\s*(?<since>[^\`]+)\`)?(?:,\\s*\`kind:\\s*(?<kind>[^\`]+)\`)?(?:,\\s*\`impl:\\s*(?<impl>[^\`]+)\`)?`,
 	);
 	const normativeKinds = new Set(formatConfig?.normativeKinds ?? ['規範']);
 	const activeStatuses = new Set(formatConfig?.activeStatuses ?? ['active']);

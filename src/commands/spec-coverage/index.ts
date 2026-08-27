@@ -112,7 +112,11 @@ function report(input: {
 	readonly aheadClauses: readonly ClauseInfo[];
 	readonly idLessTests: readonly TestNameEntry[];
 	readonly uncoveredClauses: readonly ClauseInfo[];
-	readonly unknownRefsInTests: readonly { file: string; name: string; id: string }[];
+	readonly unknownRefsInTests: readonly {
+		file: string;
+		name: string;
+		id: string;
+	}[];
 	readonly unknownRefsInSource: readonly CodeClauseRef[];
 	readonly todoRefs: readonly CodeClauseRef[];
 }): void {
