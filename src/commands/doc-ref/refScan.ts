@@ -29,12 +29,6 @@ export interface ExtractedRef {
 	readonly line: number;
 }
 
-const DECISION_PATH_RE =
-	/(?:^|[^\w./-])(?:docs\/)?decisions\/(\d{3})(?:-[a-z0-9-]+(?:\.md)?)?(?=$|[^\w./-])/g;
-const TASK_PATH_RE =
-	/(?:^|[^\w./-])(?:docs\/)?task\/(\d{3})(?:-[a-z0-9-]+(?:\.md)?)?(?=$|[^\w./-])/g;
-const NAMESPACED_REF_RE = /(?:^|[^\w./-])(@kata2\/[a-z0-9_-]+|kata2):(\d{3})(?=$|[^\w./-])/g;
-
 /** 例示や文法説明のパターン(実在検査の対象外) */
 function isExampleLine(line: string): boolean {
 	return (
@@ -54,12 +48,12 @@ export function extractDocRefs(
 	const results: ExtractedRef[] = [];
 	const seen = new Set<string>();
 	const lines = text.split('\n');
-	
+
 	const decisionBase = decisionDir.split('/').pop() || 'decisions';
 	const taskBase = taskDir.split('/').pop() || 'task';
 	const decisionEscaped = decisionDir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 	const taskEscaped = taskDir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-	
+
 	const decisionPathRe = new RegExp(
 		`(?:^|[^\\w./-])(?:(?:[\\w-]+\\/)*?${decisionBase}\\/|${decisionEscaped}\\/)(\\d{3})(?:-[a-z0-9-]+(?:\\.md)?)?(?=$|[^\\w./-])`,
 		'g',

@@ -98,7 +98,12 @@ export function collectDocs(
 	return entries;
 }
 
-function render(repoRoot: string, docType: DocType, entries: readonly DocEntry[], taskDir: string = 'docs/task'): string {
+function render(
+	repoRoot: string,
+	docType: DocType,
+	entries: readonly DocEntry[],
+	taskDir: string = 'docs/task',
+): string {
 	const byOwner = new Map<string, DocEntry[]>();
 	for (const e of entries) {
 		const list = byOwner.get(e.owner) ?? [];
@@ -156,7 +161,7 @@ export async function runList(
 		process.exitCode = 1;
 		return;
 	}
-	
+
 	const fullConfig = (await import('../../config.ts')).loadConfig(repoRoot);
 	const decisionDir = fullConfig.docRef?.decisionDir ?? 'docs/decisions';
 	const taskDir = fullConfig.docRef?.taskDir ?? 'docs/task';

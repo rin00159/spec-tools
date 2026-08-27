@@ -25,7 +25,12 @@ task: docs/task/018
 ルート: kata2:200
 重複: docs/decisions/035
 `;
-		const refs = extractDocRefs(text, 'docs/decisions', 'docs/task', '(@kata2\\/[a-z0-9_-]+|kata2)');
+		const refs = extractDocRefs(
+			text,
+			'docs/decisions',
+			'docs/task',
+			'(@kata2\\/[a-z0-9_-]+|kata2)',
+		);
 		expect(refs).toEqual([
 			{ raw: 'docs/decisions/035', type: 'decision', ref: '035', line: 3 },
 			{ raw: 'decisions/086', type: 'decision', ref: '086', line: 3 },

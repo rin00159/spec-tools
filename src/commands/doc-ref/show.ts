@@ -179,7 +179,7 @@ export async function runShow(
 
 	let missing = false;
 	const pkgs = await discoverPackages(repoRoot);
-	
+
 	const fullConfig = (await import('../../config.ts')).loadConfig(repoRoot);
 	const decisionDir = fullConfig.docRef?.decisionDir ?? 'docs/decisions';
 	const taskDir = fullConfig.docRef?.taskDir ?? 'docs/task';
