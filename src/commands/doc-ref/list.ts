@@ -1,21 +1,20 @@
-// decisions / task の一覧。依存閉包を走査して、実体の在り処ごとに並べる。
-// 正本は docs/decisions/109 決定4・決定8 / docs/plan/0_3/done/phase8.md R3。
+// List of decisions / task. Scans the dependency closure and groups them by the location of the entity.
+// The primary source is docs/decisions/109 Decision 4 and Decision 8 / docs/plan/0_3/done/phase8.md R3.
 //
 //   pnpm task:list
-//   pnpm task:list --package @kata2/core
+//   pnpm task:list --package @scope/core
 //
-// 一覧(索引)は実体を持つ側の docs/task/INDEX.md が持つ(tools/doc-ref/src/indexGen.ts)。
-// こちらは依存閉包を横断して見るための出力である。
-// docs/task/README.md に残るのは「どれを先にやるか」の表だけ(決定8)。
+// The list (index) is held by docs/task/INDEX.md on the entity side (tools/doc-ref/src/indexGen.ts).
+// This is an output to view across the dependency closure.
+// The only thing left in docs/task/README.md is the "which to do first" table (Decision 8).
 
 import { readdirSync, readFileSync, realpathSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { discoverPackages, type PackageEntry } from './closure.ts';
 import type { DocType } from './show.ts';
 
-// ファイル名に `_` を含む legacy が在る(036-v0_2-after-tasks.md)。
+// There is a legacy file containing `_` in the file name (036-v0_2-after-tasks.md).
 const NUMBERED_FILE_RE = /^(\d{3})-[a-z0-9_-]+\.md$/;
-const STUB_RE = /\*\*移設先\*\*:\s*`([^`]+)`/;
 
 export interface DocEntry {
 	readonly owner: string;
@@ -35,31 +34,40 @@ function firstTitle(content: string): string {
 		.trim();
 }
 
-function firstState(content: string): string {
-	const m = content.match(/^\*\*状態\*\*:\s*(.+)$/m);
+function firstState(content: string, statePattern?: RegExp): string {
+	const re = statePattern ?? /^\*\*State\*\*:\s*(.+)$/m;
+	const m = content.match(re);
 	if (!m?.[1]) {
 		return '—';
 	}
-	// 太字・リンクを落として1行に畳む
+	// Drop bold and links, and collapse into a single line
 	return m[1].replace(/\*\*/g, '').replace(/\s+/g, ' ').trim();
 }
 
 /**
- * repoRoot 起点で、根と依存閉包内のすべての package の docs/<subDir>/ を走査する。
- * 根の stub(移設先を指すもの)は実体側に畳み、一覧には出さない。
+ * Starting from repoRoot, scans docs/<subDir>/ of the root and all packages in the dependency closure.
+ * Root stubs (pointing to moved locations) are collapsed into the entity side and not shown in the list.
  */
 export function collectDocs(
 	repoRoot: string,
 	docType: DocType,
 	packages: ReadonlyArray<PackageEntry>,
+	decisionDir: string = 'docs/decisions',
+	taskDir: string = 'docs/task',
+	startNumber: number = 200,
+	statePatternStr?: string,
+	stubPatternStr?: string,
 ): DocEntry[] {
-	const subDir = docType === 'decision' ? 'decisions' : 'task';
+	const subDir = docType === 'decision' ? decisionDir : taskDir;
 	const entries: DocEntry[] = [];
-	// discoverPackages は realpath で畳むので、根の判定も realpath で揃える(macOS の /var → /private/var)。
+	// discoverPackages collapses with realpath, so the root determination is also aligned with realpath (/var -> /private/var on macOS).
 	const realRoot = realpathSync(repoRoot);
 
+	const stateRe = statePatternStr ? new RegExp(statePatternStr, 'm') : undefined;
+	const stubRe = stubPatternStr ? new RegExp(stubPatternStr) : /\*\*Moved To\*\*:\s*`([^`]+)`/;
+
 	for (const pkg of packages) {
-		const dir = join(pkg.dir, 'docs', subDir);
+		const dir = join(pkg.dir, subDir);
 		let names: string[];
 		try {
 			names = readdirSync(dir);
@@ -75,18 +83,18 @@ export function collectDocs(
 			const num = m[1];
 			const filePath = join(dir, name);
 			const content = readFileSync(filePath, 'utf8');
-			const isStub = STUB_RE.test(content);
+			const isStub = stubRe.test(content);
 			if (isStub) {
-				// 実体は移設先の package 側で拾う
+				// The entity is picked up on the moved package side
 				continue;
 			}
-			const bare = isRoot && Number(num) < 200;
+			const bare = isRoot && Number(num) < startNumber;
 			entries.push({
 				owner: pkg.name,
 				reference: bare ? num : `${pkg.name}:${num}`,
 				number: num,
 				title: firstTitle(content),
-				state: firstState(content),
+				state: firstState(content, stateRe),
 				filePath,
 				isStub,
 			});
@@ -96,7 +104,12 @@ export function collectDocs(
 	return entries;
 }
 
-function render(repoRoot: string, docType: DocType, entries: readonly DocEntry[]): string {
+function render(
+	repoRoot: string,
+	docType: DocType,
+	entries: readonly DocEntry[],
+	taskDir: string = 'docs/task',
+): string {
 	const byOwner = new Map<string, DocEntry[]>();
 	for (const e of entries) {
 		const list = byOwner.get(e.owner) ?? [];
@@ -105,7 +118,7 @@ function render(repoRoot: string, docType: DocType, entries: readonly DocEntry[]
 	}
 
 	const owners = [...byOwner.keys()].sort((a, b) => {
-		// kata2(根)を先頭に、以降は名前順
+		// scope (root) at the top, then by name
 		if (a.includes('/') !== b.includes('/')) {
 			return a.includes('/') ? 1 : -1;
 		}
@@ -113,25 +126,23 @@ function render(repoRoot: string, docType: DocType, entries: readonly DocEntry[]
 	});
 
 	const lines: string[] = [
-		`# ${docType} 一覧(依存閉包の走査。実体の在り処ごと。計 ${entries.length}件)`,
+		`# ${docType} list (Closure scan, grouped by location, ${entries.length} items total)`,
 		'',
 	];
 	for (const owner of owners) {
 		const list = (byOwner.get(owner) ?? []).sort((a, b) => a.number.localeCompare(b.number));
-		lines.push(`## ${owner}(${list.length}件)`);
+		lines.push(`## ${owner} (${list.length} items)`);
 		const width = Math.max(...list.map((e) => e.reference.length));
 		for (const e of list) {
 			lines.push(`  ${e.reference.padEnd(width)}  ${e.title}`);
-			lines.push(`  ${' '.repeat(width)}  状態: ${e.state}`);
+			lines.push(`  ${' '.repeat(width)}  State: ${e.state}`);
 			lines.push(`  ${' '.repeat(width)}  ${relative(repoRoot, e.filePath)}`);
 		}
 		lines.push('');
 	}
 	lines.push(
-		`本文を読むのは \`pnpm ${docType}:show <参照>\`。`,
-		docType === 'task'
-			? '着手順の判断は docs/task/README.md の表が持つ(docs/decisions/109 決定8)。'
-			: '',
+		`Read the content via \`pnpm ${docType}:show <reference>\`.`,
+		docType === 'task' ? `Task priority/order is managed in ${taskDir}/README.md.` : '',
 	);
 	return lines.filter((l) => l !== undefined).join('\n');
 }
@@ -155,6 +166,19 @@ export async function runList(
 		return;
 	}
 
-	const entries = collectDocs(repoRoot, docType, target);
-	console.log(render(repoRoot, docType, entries));
+	const fullConfig = (await import('../../config.ts')).loadConfig(repoRoot);
+	const decisionDir = fullConfig.docRef?.decisionDir ?? 'docs/decisions';
+	const taskDir = fullConfig.docRef?.taskDir ?? 'docs/task';
+
+	const entries = collectDocs(
+		repoRoot,
+		docType,
+		target,
+		decisionDir,
+		taskDir,
+		fullConfig.scaffold?.startNumber,
+		fullConfig.docRef?.statePattern,
+		fullConfig.docRef?.stubPattern,
+	);
+	console.log(render(repoRoot, docType, entries, taskDir));
 }

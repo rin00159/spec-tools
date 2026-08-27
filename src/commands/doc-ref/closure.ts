@@ -1,9 +1,9 @@
-// 依存閉包の解決子。
-// 正本は docs/decisions/109 決定4・決定8 / docs/plan/0_3/phase5.md Scope 6。
+// Dependency closure resolver.
+// Source of truth: docs/decisions/109 Decision 4 & 8 / docs/plan/0_3/phase5.md Scope 6.
 //
-// workspace 全体(packages/*, tools/*, examples/*, apps/*)と各 package の node_modules を
-// 起点とし、依存閉包を走査して package 名と実体ディレクトリ(realpath)の対応を返す。
-// symlink は realpath で解決してから package 名で畳む(R5)。
+// Traverses the entire workspace (packages/*, tools/*, examples/*, apps/*) and each package's node_modules
+// as starting points, walking the dependency closure to return the mapping between package names and real directories (realpath).
+// Symlinks are resolved to realpath before folding by package name (R5).
 
 import { readdir, readFile, realpath, stat } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -59,17 +59,17 @@ async function parseWorkspacePatterns(repoRoot: string): Promise<string[]> {
 			return patterns;
 		}
 	} catch {
-		// pnpm-workspace.yaml が無ければ既定パターン
+		// Default pattern if pnpm-workspace.yaml does not exist
 	}
 	return ['packages/*', 'tools/*', 'examples/*', 'apps/*'];
 }
 
 /**
- * repoRoot 起点で workspace 全体と依存閉包を走査し、実在する package の一覧を返す。
- * - symlink は realpath で解決してから name で畳む(R5)。
- * - 文書を持つ package (docs/decisions/ または docs/task/ を持つもの) で異なる realpath が
- *   同じ name を名乗った場合は throw する。文書を持たない第三者 package の同名衝突は許容する。
- * - npm レジストリへは問い合わせない(ファイルシステム内で完結)。
+ * Traverses the entire workspace and dependency closure starting from repoRoot, and returns a list of existing packages.
+ * - Symlinks are resolved to realpath before folding by name (R5).
+ * - Throws if a package with docs (has docs/decisions/ or docs/task/) claims the same name with different realpaths.
+ *   Name collisions for third-party packages without docs are allowed.
+ * - Does not query the npm registry (completed within the file system).
  */
 export async function discoverPackages(repoRoot: string): Promise<ReadonlyArray<PackageEntry>> {
 	const realRoot = await realpath(repoRoot);
@@ -98,7 +98,7 @@ export async function discoverPackages(repoRoot: string): Promise<ReadonlyArray<
 			const newHasDocs = await hasDocs(real);
 			if (existingHasDocs && newHasDocs) {
 				throw new Error(
-					`同じ package 名 "${name}" を持つ異なるパス (${existingDir} と ${real}) が文書ディレクトリを持っている`,
+					`Conflicting paths for package name "${name}" (${existingDir} and ${real}) both have doc directories.`,
 				);
 			}
 			if (newHasDocs && !existingHasDocs) {
@@ -114,13 +114,13 @@ export async function discoverPackages(repoRoot: string): Promise<ReadonlyArray<
 		}
 	}
 
-	// 1. ルート自身
+	// 1. Root itself
 	const rootName = (await readPackageName(realRoot)) ?? 'root';
 	nameToDir.set(rootName, realRoot);
 	queue.push(realRoot);
 	visitedDirs.add(realRoot);
 
-	// 2. workspace パターンからパッケージ候補を列挙
+	// 2. Enumerate package candidates from workspace patterns
 	const patterns = await parseWorkspacePatterns(repoRoot);
 	for (const pattern of patterns) {
 		if (pattern.endsWith('/*')) {
@@ -137,7 +137,7 @@ export async function discoverPackages(repoRoot: string): Promise<ReadonlyArray<
 		}
 	}
 
-	// 3. 各 package の node_modules を辿る (symlink を辿る)
+	// 3. Traverse node_modules of each package (traverse symlinks)
 	while (queue.length > 0) {
 		const currentDir = queue.shift();
 		if (!currentDir) {

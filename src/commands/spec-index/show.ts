@@ -1,4 +1,4 @@
-// 条項本文の取り出し。**spec のファイルを全文読む代わりにこれを使う。**
+// Extract the body of a clause. **Use this instead of reading the entire spec file.**
 //
 //   pnpm spec:show K-CORE-TYPE-011 [K-CORE-DEF-012 ...]
 
@@ -15,8 +15,9 @@ export async function runSpecShow(repoRoot: string = process.cwd(), ids: string[
 		return;
 	}
 
-	const specRoots = await discoverSpecRoots(repoRoot);
-	const clauses = await parseSpecClauses(specRoots);
+	const fullConfig = (await import('../../config.ts')).loadConfig(repoRoot);
+	const specRoots = fullConfig.specRoots ?? (await discoverSpecRoots(repoRoot));
+	const clauses = await parseSpecClauses(specRoots, fullConfig.clauseFormat);
 	const byId = new Map(clauses.map((c) => [c.id, c]));
 	const fileCache = new Map<string, string[]>();
 	let missing = false;

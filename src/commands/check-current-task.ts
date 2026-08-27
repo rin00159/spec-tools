@@ -38,7 +38,7 @@ export function runCheckCurrentTask(cwd: string = process.cwd()): void {
 	const config = loadConfig(cwd).checkCurrentTask || {};
 	const file = config.file || 'docs/currentTask.ai.md';
 	const maxLines = config.maxLines || 80;
-	// 汎用ツールとしてのデフォルト値（英語）
+	// Default values as a generic tool (English)
 	const headings = config.headings || ['## Current Status', '## Next Steps', '## Blockers'];
 
 	const cardPath = resolve(cwd, file);

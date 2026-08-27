@@ -1,9 +1,9 @@
-// markdown 文書中の decisions / task 参照の走査と実在検証。
-// 正本は docs/decisions/109 決定4・決定8 / kata2:200 / docs/plan/0_3/phase7.md 完了判定5。
+// Scanning and existence verification of decisions / task references in markdown documents.
+// The primary source is docs/decisions/109 Decision 4 and Decision 8 / scope:200 / docs/plan/0_3/phase7.md Completion Criterion 5.
 //
-// docs/decisions/<NNN> 形式・docs/task/<NNN> 形式および <name>:<NNN> 形式
-// (@kata2/core:200, kata2:200 等)の参照を走査し、実体または stub が実在することを機械検査する。
-// 空振り防止のため、走査対象が0件または参照が0件の場合は throw する。
+// Scans references in docs/decisions/<NNN> format, docs/task/<NNN> format, and <name>:<NNN> format
+// (e.g. @scope/core:200, scope:200) and mechanically verifies that the entity or stub exists.
+// Throws an error if there are 0 target files or 0 references to prevent false positives.
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -29,38 +29,51 @@ export interface ExtractedRef {
 	readonly line: number;
 }
 
-const DECISION_PATH_RE =
-	/(?:^|[^\w./-])(?:docs\/)?decisions\/(\d{3})(?:-[a-z0-9-]+(?:\.md)?)?(?=$|[^\w./-])/g;
-const TASK_PATH_RE =
-	/(?:^|[^\w./-])(?:docs\/)?task\/(\d{3})(?:-[a-z0-9-]+(?:\.md)?)?(?=$|[^\w./-])/g;
-const NAMESPACED_REF_RE = /(?:^|[^\w./-])(@kata2\/[a-z0-9_-]+|kata2):(\d{3})(?=$|[^\w./-])/g;
-
-/** 例示や文法説明のパターン(実在検査の対象外) */
-function isExampleLine(line: string): boolean {
-	return (
-		/(?:例|例:|e\.g\.|Example|使い方:)\s*[`(]?@kata2\//.test(line) ||
-		/`decision:show @kata2\//.test(line) ||
-		/`task:show @kata2\//.test(line) ||
-		/\(`?@kata2\/targetlib-schemaui:200`?\)/.test(line)
-	);
+/** Patterns for examples and syntax explanations (excluded from existence check) */
+function isExampleLine(line: string, examplePatterns?: readonly RegExp[]): boolean {
+	if (examplePatterns) {
+		return examplePatterns.some((re) => re.test(line));
+	}
+	return false;
 }
 
-/**
- * markdown テキストから decision / task / namespaced の参照を抽出する(重複は行単位で畳む)。
- */
-export function extractDocRefs(text: string): ExtractedRef[] {
+export function extractDocRefs(
+	text: string,
+	decisionDir: string,
+	taskDir: string,
+	namespacePattern: string,
+	examplePatterns?: readonly RegExp[],
+): ExtractedRef[] {
 	const results: ExtractedRef[] = [];
 	const seen = new Set<string>();
 	const lines = text.split('\n');
 
+	const decisionBase = decisionDir.split('/').pop() || 'decisions';
+	const taskBase = taskDir.split('/').pop() || 'task';
+	const decisionEscaped = decisionDir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+	const taskEscaped = taskDir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+	const decisionPathRe = new RegExp(
+		`(?:^|[^\\w./-])(?:(?:[\\w-]+\\/)*?${decisionBase}\\/|${decisionEscaped}\\/)(\\d{3})(?:-[a-z0-9_-]+(?:\\.md)?)?(?=$|[^\\w./-])`,
+		'g',
+	);
+	const taskPathRe = new RegExp(
+		`(?:^|[^\\w./-])(?:(?:[\\w-]+\\/)*?${taskBase}\\/|${taskEscaped}\\/)(\\d{3})(?:-[a-z0-9_-]+(?:\\.md)?)?(?=$|[^\\w./-])`,
+		'g',
+	);
+	const namespacedRefRe = new RegExp(
+		`(?:^|[^\\w./-])${namespacePattern}:(\\d{3})(?=$|[^\\w./-])`,
+		'g',
+	);
+
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i];
-		if (line === undefined || isExampleLine(line)) {
+		if (line === undefined || isExampleLine(line, examplePatterns)) {
 			continue;
 		}
 		const lineNo = i + 1;
 
-		for (const match of line.matchAll(DECISION_PATH_RE)) {
+		for (const match of line.matchAll(decisionPathRe)) {
 			const num = match[1];
 			if (!num) continue;
 			const key = `decision:${num}`;
@@ -75,7 +88,7 @@ export function extractDocRefs(text: string): ExtractedRef[] {
 			}
 		}
 
-		for (const match of line.matchAll(TASK_PATH_RE)) {
+		for (const match of line.matchAll(taskPathRe)) {
 			const num = match[1];
 			if (!num) continue;
 			const key = `task:${num}`;
@@ -90,7 +103,7 @@ export function extractDocRefs(text: string): ExtractedRef[] {
 			}
 		}
 
-		for (const match of line.matchAll(NAMESPACED_REF_RE)) {
+		for (const match of line.matchAll(namespacedRefRe)) {
 			const pkgName = match[1];
 			const numStr = match[2];
 			if (!pkgName || !numStr) continue;
@@ -143,11 +156,21 @@ export async function validateDocRefsInRepo(
 		readonly scanRoots?: readonly string[];
 		readonly rootFiles?: readonly string[];
 		readonly packages?: ReadonlyArray<PackageEntry>;
+		readonly decisionDir?: string;
+		readonly taskDir?: string;
+		readonly namespacePattern?: string;
+		readonly historicalPrefixes?: readonly string[];
+		readonly examplePatterns?: readonly string[];
 	},
 ): Promise<ValidationResult> {
 	const scanRoots = options?.scanRoots ?? SCAN_ROOTS;
 	const rootFiles = options?.rootFiles ?? ROOT_FILES;
 	const pkgs = options?.packages ?? (await discoverPackages(repoRoot));
+	const decisionDir = options?.decisionDir ?? 'docs/decisions';
+	const taskDir = options?.taskDir ?? 'docs/task';
+	const namespacePattern = options?.namespacePattern ?? '(@scope\\/[a-z0-9_-]+|scope)';
+	const historicalPrefixes = options?.historicalPrefixes ?? HISTORICAL_PREFIXES;
+	const exampleRegexes = options?.examplePatterns?.map((p) => new RegExp(p)) ?? [];
 
 	const markdownFiles: string[] = [
 		...scanRoots.flatMap((root) => walkMarkdownFiles(join(repoRoot, root))),
@@ -163,7 +186,7 @@ export async function validateDocRefsInRepo(
 	];
 
 	if (markdownFiles.length === 0) {
-		throw new Error('走査対象の markdown ファイルが0件です(空振り防止)');
+		throw new Error('No markdown files found to scan.');
 	}
 
 	let totalRefs = 0;
@@ -171,38 +194,38 @@ export async function validateDocRefsInRepo(
 
 	let rootDecisionsFiles: string[] = [];
 	try {
-		rootDecisionsFiles = readdirSync(join(repoRoot, 'docs', 'decisions'));
+		rootDecisionsFiles = readdirSync(join(repoRoot, decisionDir));
 	} catch {
-		// docs/decisions が存在しない場合
+		// When docs/decisions does not exist
 	}
 
 	let rootTaskFiles: string[] = [];
 	try {
-		rootTaskFiles = readdirSync(join(repoRoot, 'docs', 'task'));
+		rootTaskFiles = readdirSync(join(repoRoot, taskDir));
 	} catch {
-		// docs/task が存在しない場合
+		// When docs/task does not exist
 	}
 
 	for (const filePath of markdownFiles) {
 		const relFile = relative(repoRoot, filePath);
-		if (HISTORICAL_PREFIXES.some((prefix) => relFile.startsWith(prefix))) {
+		if (historicalPrefixes.some((prefix) => relFile.startsWith(prefix))) {
 			continue;
 		}
 
 		const text = readFileSync(filePath, 'utf8');
-		const refs = extractDocRefs(text);
+		const refs = extractDocRefs(text, decisionDir, taskDir, namespacePattern, exampleRegexes);
 		totalRefs += refs.length;
 
 		for (const refItem of refs) {
 			if (refItem.type === 'decision' || refItem.type === 'task') {
 				const numStr = refItem.ref;
-				const subDir = refItem.type === 'decision' ? 'decisions' : 'task';
+				const subDir = refItem.type === 'decision' ? decisionDir : taskDir;
 				const rootFilesForType = refItem.type === 'decision' ? rootDecisionsFiles : rootTaskFiles;
-				// 実体でも stub でもよい。根に <NNN>- で始まる md が在れば参照は切れていない。
+				// Can be an entity or a stub. If an md starting with <NNN>- exists at the root, the reference is not broken.
 				const found = rootFilesForType.some((f) => f.startsWith(`${numStr}-`) && f.endsWith('.md'));
 				if (!found) {
 					violations.push(
-						`${relFile}:${refItem.line}: 存在しない ${refItem.type} 参照 docs/${subDir}/${numStr}`,
+						`${relFile}:${refItem.line}: Missing ${refItem.type} reference ${subDir}/${numStr}`,
 					);
 				}
 			} else {
@@ -210,14 +233,14 @@ export async function validateDocRefsInRepo(
 				let resolved = false;
 				let lastErr: unknown;
 				try {
-					await resolveDocRef(repoRoot, 'decision', refItem.ref, pkgs);
+					await resolveDocRef(repoRoot, 'decision', refItem.ref, pkgs, decisionDir, taskDir);
 					resolved = true;
 				} catch (err) {
 					lastErr = err;
 				}
 				if (!resolved) {
 					try {
-						await resolveDocRef(repoRoot, 'task', refItem.ref, pkgs);
+						await resolveDocRef(repoRoot, 'task', refItem.ref, pkgs, decisionDir, taskDir);
 						resolved = true;
 					} catch (err) {
 						lastErr = err;
@@ -225,7 +248,7 @@ export async function validateDocRefsInRepo(
 				}
 				if (!resolved) {
 					violations.push(
-						`${relFile}:${refItem.line}: 存在しない名前空間付き参照 ${refItem.ref} (${lastErr instanceof Error ? lastErr.message : String(lastErr)})`,
+						`${relFile}:${refItem.line}: Missing namespaced reference ${refItem.ref} (${lastErr instanceof Error ? lastErr.message : String(lastErr)})`,
 					);
 				}
 			}
@@ -233,7 +256,7 @@ export async function validateDocRefsInRepo(
 	}
 
 	if (totalRefs === 0) {
-		throw new Error('走査された参照が0件です(空振り防止)');
+		throw new Error('No references found to validate.');
 	}
 
 	return {

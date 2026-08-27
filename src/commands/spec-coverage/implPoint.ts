@@ -1,7 +1,7 @@
-// 条項の `impl`(plan 版 + Phase)の表現と順序。00-conventions.md「`impl` の書式」が正本。
+// Representation and ordering of clause `impl` (plan version + Phase). The source of truth is "`impl` format" in spec/00-conventions.md.
 //
-// `v<major>_<minor>_<phase>` を3整数へパースし、**辞書式**で比較する。
-// 文字列比較は禁止 — `v0_1_16` は `v0_1_2` より後だが、文字列では前になる。
+// Parses `v<major>_<minor>_<phase>` into 3 integers and compares them **lexicographically**.
+// String comparison is prohibited — `v0_1_16` comes after `v0_1_2`, but string comparison puts it before.
 
 export interface ImplPoint {
 	readonly major: number;
@@ -9,7 +9,7 @@ export interface ImplPoint {
 	readonly phase: number;
 }
 
-/** 先行ゼロを許さない(`v0_1_01` は書式違反)。`0` 単体は許す。 */
+/** Does not allow leading zeros (`v0_1_01` is an invalid format). A single `0` is allowed. */
 const IMPL_TOKEN_RE = /^v(0|[1-9]\d*)_(0|[1-9]\d*)_(0|[1-9]\d*)$/;
 
 export const IMPL_TOKEN_SOURCE = 'v(?:0|[1-9]\\d*)_(?:0|[1-9]\\d*)_(?:0|[1-9]\\d*)';
@@ -30,12 +30,12 @@ export function formatImplPoint(point: ImplPoint): string {
 	return `v${point.major}_${point.minor}_${point.phase}`;
 }
 
-/** a < b なら負、a === b なら 0、a > b なら正。 */
+/** Returns a negative value if a < b, 0 if a === b, and a positive value if a > b. */
 export function compareImplPoint(a: ImplPoint, b: ImplPoint): number {
 	return a.major - b.major || a.minor - b.minor || a.phase - b.phase;
 }
 
-/** 条項の impl が現在地に到達済みか(spec:coverage 問い2 の対象判定)。 */
+/** Checks if the clause's impl point has been reached (target determination for spec:coverage Question 2). */
 export function isReached(impl: ImplPoint, current: ImplPoint): boolean {
 	return compareImplPoint(impl, current) <= 0;
 }

@@ -1,10 +1,11 @@
-// spec 索引の生成と鮮度検査。
+// Generation and freshness check of the spec index.
 //
-//   pnpm spec:index          # spec/INDEX.md を生成(または更新)
-//   pnpm check:spec-index    # 生成物が最新かを検査(pnpm lint の一部)
+//   pnpm spec:index          # Generate (or update) spec/INDEX.md
+//   pnpm check:spec-index    # Check if the generated file is up to date (part of pnpm lint)
 
 import { readFile, writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
+import { loadConfig } from '../../config.ts';
 import { parseSpecClauses } from '../spec-coverage/specClauses.ts';
 import { discoverSpecRoots } from '../spec-coverage/specRoots.ts';
 import { renderIndex } from './clause.ts';
@@ -16,12 +17,21 @@ export async function runSpecIndex(
 	const SPEC_DIR = join(repoRoot, 'spec');
 	const INDEX_PATH = join(SPEC_DIR, 'INDEX.md');
 
-	const specRoots = await discoverSpecRoots(repoRoot);
-	const clauses = (await parseSpecClauses(specRoots)).map((clause) => ({
+	const fullConfig = loadConfig(repoRoot);
+	const specRoots = fullConfig.specRoots ?? (await discoverSpecRoots(repoRoot));
+	const clauses = (await parseSpecClauses(specRoots, fullConfig.clauseFormat)).map((clause) => ({
 		...clause,
 		file: relative(repoRoot, clause.file),
 	}));
-	const expected = renderIndex(clauses);
+	let customHeader: string | undefined = fullConfig.specIndex?.header;
+	if (customHeader?.endsWith('.md')) {
+		try {
+			customHeader = await readFile(join(repoRoot, customHeader), 'utf8');
+		} catch {
+			// fallback to using it as literal string if not a file
+		}
+	}
+	const expected = renderIndex(clauses, customHeader);
 
 	if (!checkOnly) {
 		await writeFile(INDEX_PATH, expected, 'utf8');

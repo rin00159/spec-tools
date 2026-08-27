@@ -1,10 +1,9 @@
-// packages/ / tools/ / examples/ 配下のソースファイルを走査し、
-// コード・コメント・エラーメッセージ中の条項 ID 参照を検出する(docs/task/059)。
-// 実在しない条項 ID は未知の参照として報告し、`TODO(K-...)` 記法で明示されたものは猶予として扱う。
+// Scans source files under packages/ / tools/ / examples/ to detect clause ID references in code,
+// comments, and error messages.
+// Non-existent clause IDs are reported as unknown references, and those explicitly marked with the `TODO(K-...)` notation are treated as deferred.
 
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { CLAUSE_ID_PATTERN } from './specClauses.ts';
 
 export interface CodeClauseRef {
 	readonly file: string;
@@ -18,13 +17,13 @@ export interface CodeScanResult {
 	readonly todoRefs: readonly CodeClauseRef[];
 }
 
-const CLAUSE_ID_GLOBAL_RE = new RegExp(`\\b(${CLAUSE_ID_PATTERN})\\b`, 'g');
 const TODO_CLAUSE_SPAN_RE = /\bTODO\(([^)]*)\)/g;
 
 export function extractClauseRefsFromText(
 	content: string,
 	file: string,
 	knownIds: ReadonlySet<string>,
+	idPattern: string,
 ): {
 	readonly knownRefs: readonly CodeClauseRef[];
 	readonly unknownRefs: readonly CodeClauseRef[];
@@ -33,6 +32,7 @@ export function extractClauseRefsFromText(
 	const knownRefs: CodeClauseRef[] = [];
 	const unknownRefs: CodeClauseRef[] = [];
 	const todoRefs: CodeClauseRef[] = [];
+	const clauseIdGlobalRe = new RegExp(`\\b(${idPattern})\\b`, 'g');
 
 	const lines = content.split('\n');
 	for (const [lineIdx, line] of lines.entries()) {
@@ -46,7 +46,7 @@ export function extractClauseRefsFromText(
 			}
 		}
 
-		for (const match of line.matchAll(CLAUSE_ID_GLOBAL_RE)) {
+		for (const match of line.matchAll(clauseIdGlobalRe)) {
 			const id = match[1];
 			const matchIndex = match.index;
 			if (id === undefined || matchIndex === undefined) {
@@ -81,9 +81,7 @@ const IGNORED_DIR_NAMES = new Set([
 	'test-fixtures',
 ]);
 
-const SCANNABLE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs', '.json']);
-
-async function walkSourceFiles(dir: string): Promise<string[]> {
+async function walkSourceFiles(dir: string, extensions: ReadonlySet<string>): Promise<string[]> {
 	let entries: import('node:fs').Dirent[];
 	try {
 		entries = await readdir(dir, { withFileTypes: true });
@@ -97,12 +95,12 @@ async function walkSourceFiles(dir: string): Promise<string[]> {
 		}
 		const path = join(dir, entry.name);
 		if (entry.isDirectory()) {
-			files.push(...(await walkSourceFiles(path)));
+			files.push(...(await walkSourceFiles(path, extensions)));
 		} else if (entry.isFile()) {
 			const dotIdx = entry.name.lastIndexOf('.');
 			if (dotIdx !== -1) {
 				const ext = entry.name.slice(dotIdx);
-				if (SCANNABLE_EXTENSIONS.has(ext)) {
+				if (extensions.has(ext)) {
 					files.push(path);
 				}
 			}
@@ -114,16 +112,20 @@ async function walkSourceFiles(dir: string): Promise<string[]> {
 export async function scanSourceCodeRefs(
 	roots: readonly string[],
 	knownIds: ReadonlySet<string>,
+	idPattern: string,
+	sourceExtensions: string[],
 ): Promise<CodeScanResult> {
 	const knownRefs: CodeClauseRef[] = [];
 	const unknownRefs: CodeClauseRef[] = [];
 	const todoRefs: CodeClauseRef[] = [];
 
+	const extensions = new Set(sourceExtensions);
+
 	for (const root of roots) {
-		const files = await walkSourceFiles(root);
+		const files = await walkSourceFiles(root, extensions);
 		for (const file of files) {
 			const content = await readFile(file, 'utf8');
-			const res = extractClauseRefsFromText(content, file, knownIds);
+			const res = extractClauseRefsFromText(content, file, knownIds, idPattern);
 			knownRefs.push(...res.knownRefs);
 			unknownRefs.push(...res.unknownRefs);
 			todoRefs.push(...res.todoRefs);

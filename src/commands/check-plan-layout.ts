@@ -40,7 +40,7 @@ function extractPlanPaths(text: string, planDir: string): string[] {
 }
 
 function planPathCandidates(planPath: string, planDir: string): string[] {
-	// match `planDir/<版>/phase<N>.md` to `planDir/<版>/done/phase<N>.md`
+	// match `planDir/<version>/phase<N>.md` to `planDir/<version>/done/phase<N>.md`
 	const escapedDir = planDir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 	const match = new RegExp(`^(${escapedDir}\\/[^/]+)\\/(phase\\d+\\.md)$`).exec(planPath);
 	if (!match?.[1] || !match[2]) {

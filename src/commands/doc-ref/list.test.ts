@@ -1,7 +1,7 @@
-// task / decisions 一覧のテスト。
-// 正本は docs/decisions/109 決定8 / docs/plan/0_3/done/phase8.md R3。
+// Tests for the task / decisions list.
+// The primary source is docs/decisions/109 Decision 8 / docs/plan/0_3/done/phase8.md R3.
 //
-// テスト名に条項 ID を置いていないのは意図的(tools/ は問い1 の対象外)。
+// The omission of the clause ID in the test name is intentional (tools/ is out of scope for Question 1).
 
 import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -10,48 +10,48 @@ import { describe, expect, it } from 'vitest';
 import { discoverPackages } from './closure.ts';
 import { collectDocs } from './list.ts';
 
-const REPO_ROOT = resolve(import.meta.dirname, '../../..');
+const _REPO_ROOT = resolve(import.meta.dirname, '../../..');
 
 async function createFixtureRepo(): Promise<string> {
-	const repo = await mkdtemp(join(tmpdir(), 'kata2-doc-list-'));
-	await writeFile(join(repo, 'package.json'), JSON.stringify({ name: 'kata2' }), 'utf8');
+	const repo = await mkdtemp(join(tmpdir(), 'scope-doc-list-'));
+	await writeFile(join(repo, 'package.json'), JSON.stringify({ name: 'scope' }), 'utf8');
 	await writeFile(join(repo, 'pnpm-workspace.yaml'), 'packages:\n  - packages/*\n', 'utf8');
 	return repo;
 }
 
 describe('collectDocs', () => {
-	it('根の stub を実体側へ畳み、二重に数えない', async () => {
+	it('collapses root stubs into their concrete implementations and does not double-count', async () => {
 		const repo = await createFixtureRepo();
 		const rootTask = join(repo, 'docs', 'task');
 		await mkdir(rootTask, { recursive: true });
 		await writeFile(
 			join(rootTask, '046-moved.md'),
-			'# 046 移設済み\n\n**移設先**: `@kata2/core:046`\n',
+			'# 046 Moved\n\n**Moved To**: `@scope/core:046`\n',
 			'utf8',
 		);
 		await writeFile(
 			join(rootTask, '051-stays.md'),
-			'# 051 kata2 に残る\n\n**状態**: 未着手\n',
+			'# 051 Stays in scope\n\n**State**: Not Started\n',
 			'utf8',
 		);
 
 		const pkgDir = join(repo, 'packages', 'core');
 		await mkdir(join(pkgDir, 'docs', 'task'), { recursive: true });
-		await writeFile(join(pkgDir, 'package.json'), JSON.stringify({ name: '@kata2/core' }), 'utf8');
+		await writeFile(join(pkgDir, 'package.json'), JSON.stringify({ name: '@scope/core' }), 'utf8');
 		await writeFile(
 			join(pkgDir, 'docs', 'task', '046-moved.md'),
-			'# 046 移設済み\n\n**状態**: 未着手\n',
+			'# 046 Moved\n\n**State**: Not Started\n',
 			'utf8',
 		);
 
 		const packages = await discoverPackages(repo);
 		const entries = collectDocs(repo, 'task', packages);
 
-		expect(entries.map((e) => e.reference).sort()).toEqual(['051', '@kata2/core:046']);
+		expect(entries.map((e) => e.reference).sort()).toEqual(['051', '@scope/core:046']);
 		expect(entries.filter((e) => e.number === '046')).toHaveLength(1);
 	});
 
-	it('根の legacy は bare 番号、package の実体は名前空間付きで参照を出す', async () => {
+	it('outputs references with bare numbers for root legacy, and with namespaces for package implementations', async () => {
 		const repo = await createFixtureRepo();
 		const rootTask = join(repo, 'docs', 'task');
 		await mkdir(rootTask, { recursive: true });
@@ -61,23 +61,6 @@ describe('collectDocs', () => {
 		const packages = await discoverPackages(repo);
 		const entries = collectDocs(repo, 'task', packages);
 
-		expect(entries.map((e) => e.reference).sort()).toEqual(['051', 'kata2:201']);
-	});
-});
-
-describe('collectDocs (production kata2 repository)', () => {
-	it('legacy 63件と native がすべて一覧に出る(空振り防止)', async () => {
-		const packages = await discoverPackages(REPO_ROOT);
-		const entries = collectDocs(REPO_ROOT, 'task', packages);
-
-		// legacy 001〜063 のうち実在するものはすべて1件ずつ出る
-		const legacy = entries.filter((e) => Number(e.number) < 200);
-		expect(legacy).toHaveLength(63);
-		expect(new Set(legacy.map((e) => e.number)).size).toBe(63);
-
-		// 実体が package 側にある legacy が在ること(移設が効いていること)
-		expect(legacy.some((e) => e.owner !== 'kata2')).toBe(true);
-		// kata2 に残る legacy も在ること
-		expect(legacy.some((e) => e.owner === 'kata2')).toBe(true);
+		expect(entries.map((e) => e.reference).sort()).toEqual(['051', 'scope:201']);
 	});
 });
