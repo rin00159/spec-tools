@@ -1,5 +1,5 @@
 // Scans source files under packages/ / tools/ / examples/ to detect clause ID references in code,
-// comments, and error messages (docs/task/059).
+// comments, and error messages.
 // Non-existent clause IDs are reported as unknown references, and those explicitly marked with the `TODO(K-...)` notation are treated as deferred.
 
 import { readdir, readFile } from "node:fs/promises";
