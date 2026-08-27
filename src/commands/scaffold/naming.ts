@@ -5,10 +5,7 @@
 // v0.2 Phase 12 まで kata2-verify skill が存在しないパスを指していた)。
 // 規則をここへ寄せ、コマンドが正しい名前でファイルを作る形にする(docs/decisions/089)。
 
-import {
-	formatImplPoint,
-	type ImplPoint,
-} from "../spec-coverage/implPoint.ts";
+import { formatImplPoint, type ImplPoint } from '../spec-coverage/implPoint.ts';
 
 const NUMBERED_FILE_RE = /^(\d{3})-[a-z0-9-]+\.md$/;
 export const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -31,7 +28,7 @@ export function nextNumber(fileNames: readonly string[]): number {
 }
 
 export function numberedFileName(numberValue: number, slug: string): string {
-	return `${String(numberValue).padStart(3, "0")}-${slug}.md`;
+	return `${String(numberValue).padStart(3, '0')}-${slug}.md`;
 }
 
 /** 版ディレクトリ(`docs/plan/0_2`)。`impl` の major/minor がそのまま版である。 */
@@ -46,16 +43,12 @@ export function planFileFor(point: ImplPoint): string {
 
 /** 検収証跡(`docs/acceptance/phase-v0_2-24.md`)。 */
 export function acceptanceFileFor(point: ImplPoint): string {
-	const version = formatImplPoint(point).replace(/_\d+$/, "");
+	const version = formatImplPoint(point).replace(/_\d+$/, '');
 	return `docs/acceptance/phase-${version}-${point.phase}.md`;
 }
 
-export function decisionTemplate(
-	numberValue: number,
-	title: string,
-	today: string,
-): string {
-	return `# ${String(numberValue).padStart(3, "0")} ${title}
+export function decisionTemplate(numberValue: number, title: string, today: string): string {
+	return `# ${String(numberValue).padStart(3, '0')} ${title}
 
 **日付**: ${today}
 **状態**: 確定
@@ -119,12 +112,8 @@ pnpm verify --gate
 `;
 }
 
-export function taskTemplate(
-	numberValue: number,
-	title: string,
-	today: string,
-): string {
-	return `# ${String(numberValue).padStart(3, "0")} ${title}
+export function taskTemplate(numberValue: number, title: string, today: string): string {
+	return `# ${String(numberValue).padStart(3, '0')} ${title}
 
 **起票**: ${today}
 **関係**: 

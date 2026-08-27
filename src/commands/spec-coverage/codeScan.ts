@@ -2,9 +2,9 @@
 // コード・コメント・エラーメッセージ中の条項 ID 参照を検出する(docs/task/059)。
 // 実在しない条項 ID は未知の参照として報告し、`TODO(K-...)` 記法で明示されたものは猶予として扱う。
 
-import { readdir, readFile } from "node:fs/promises";
-import { join } from "node:path";
-import { CLAUSE_ID_PATTERN } from "./specClauses.ts";
+import { readdir, readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { CLAUSE_ID_PATTERN } from './specClauses.ts';
 
 export interface CodeClauseRef {
 	readonly file: string;
@@ -18,7 +18,7 @@ export interface CodeScanResult {
 	readonly todoRefs: readonly CodeClauseRef[];
 }
 
-const CLAUSE_ID_GLOBAL_RE = new RegExp(`\\b(${CLAUSE_ID_PATTERN})\\b`, "g");
+const CLAUSE_ID_GLOBAL_RE = new RegExp(`\\b(${CLAUSE_ID_PATTERN})\\b`, 'g');
 const TODO_CLAUSE_SPAN_RE = /\bTODO\(([^)]*)\)/g;
 
 export function extractClauseRefsFromText(
@@ -34,7 +34,7 @@ export function extractClauseRefsFromText(
 	const unknownRefs: CodeClauseRef[] = [];
 	const todoRefs: CodeClauseRef[] = [];
 
-	const lines = content.split("\n");
+	const lines = content.split('\n');
 	for (const [lineIdx, line] of lines.entries()) {
 		const todoSpans: { start: number; end: number }[] = [];
 		for (const todoMatch of line.matchAll(TODO_CLAUSE_SPAN_RE)) {
@@ -71,27 +71,20 @@ export function extractClauseRefsFromText(
 }
 
 const IGNORED_DIR_NAMES = new Set([
-	"node_modules",
-	"dist",
-	"buildArtifact",
-	".git",
-	".turbo",
-	".tmp",
-	"fixtures",
-	"test-fixtures",
+	'node_modules',
+	'dist',
+	'buildArtifact',
+	'.git',
+	'.turbo',
+	'.tmp',
+	'fixtures',
+	'test-fixtures',
 ]);
 
-const SCANNABLE_EXTENSIONS = new Set([
-	".ts",
-	".tsx",
-	".js",
-	".mjs",
-	".cjs",
-	".json",
-]);
+const SCANNABLE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs', '.json']);
 
 async function walkSourceFiles(dir: string): Promise<string[]> {
-	let entries: import("node:fs").Dirent[];
+	let entries: import('node:fs').Dirent[];
 	try {
 		entries = await readdir(dir, { withFileTypes: true });
 	} catch {
@@ -106,7 +99,7 @@ async function walkSourceFiles(dir: string): Promise<string[]> {
 		if (entry.isDirectory()) {
 			files.push(...(await walkSourceFiles(path)));
 		} else if (entry.isFile()) {
-			const dotIdx = entry.name.lastIndexOf(".");
+			const dotIdx = entry.name.lastIndexOf('.');
 			if (dotIdx !== -1) {
 				const ext = entry.name.slice(dotIdx);
 				if (SCANNABLE_EXTENSIONS.has(ext)) {
@@ -129,7 +122,7 @@ export async function scanSourceCodeRefs(
 	for (const root of roots) {
 		const files = await walkSourceFiles(root);
 		for (const file of files) {
-			const content = await readFile(file, "utf8");
+			const content = await readFile(file, 'utf8');
 			const res = extractClauseRefsFromText(content, file, knownIds);
 			knownRefs.push(...res.knownRefs);
 			unknownRefs.push(...res.unknownRefs);

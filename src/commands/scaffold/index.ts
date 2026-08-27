@@ -7,17 +7,11 @@
 //
 // 番号とファイル名を人(や AI)が数えないための入口である(docs/decisions/089)。
 
-import {
-	existsSync,
-	mkdirSync,
-	readdirSync,
-	readFileSync,
-	writeFileSync,
-} from "node:fs";
-import { join, relative } from "node:path";
-import { discoverPackages } from "../doc-ref/closure.ts";
-import { suggestClosest } from "../doc-ref/show.ts";
-import { parseImplPoint } from "../spec-coverage/implPoint.ts";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join, relative } from 'node:path';
+import { discoverPackages } from '../doc-ref/closure.ts';
+import { suggestClosest } from '../doc-ref/show.ts';
+import { parseImplPoint } from '../spec-coverage/implPoint.ts';
 import {
 	acceptanceFileFor,
 	acceptanceTemplate,
@@ -27,7 +21,7 @@ import {
 	planFileFor,
 	SLUG_RE,
 	taskTemplate,
-} from "./naming.ts";
+} from './naming.ts';
 
 function today(): string {
 	return new Date().toISOString().slice(0, 10);
@@ -42,15 +36,15 @@ function writeNew(path: string, content: string): void {
 	if (existsSync(path)) {
 		fail(`Already exists: ${path}`);
 	}
-	writeFileSync(path, content, "utf8");
+	writeFileSync(path, content, 'utf8');
 }
 
 function currentPoint(repoRoot: string) {
-	const PHASE_FILE = join(repoRoot, "spec/PHASE");
+	const PHASE_FILE = join(repoRoot, 'spec/PHASE');
 	if (!existsSync(PHASE_FILE)) {
 		fail(`spec/PHASE not found. Please create it first.`);
 	}
-	const token = readFileSync(PHASE_FILE, "utf8").trim();
+	const token = readFileSync(PHASE_FILE, 'utf8').trim();
 	const point = parseImplPoint(token);
 	if (!point) {
 		fail(`Invalid format in spec/PHASE: ${token}`);
@@ -62,13 +56,13 @@ function parsePackageArg(args: readonly string[]): {
 	readonly packageName?: string;
 	readonly remainingArgs: readonly string[];
 } {
-	const pkgIndex = args.indexOf("--package");
+	const pkgIndex = args.indexOf('--package');
 	if (pkgIndex === -1) {
 		return { remainingArgs: args };
 	}
 	const packageName = args[pkgIndex + 1];
 	if (!packageName) {
-		fail("--package requires a package name");
+		fail('--package requires a package name');
 	}
 	const remaining = [...args.slice(0, pkgIndex), ...args.slice(pkgIndex + 2)];
 	return { packageName, remainingArgs: remaining };
@@ -78,15 +72,15 @@ async function cmdDecision(repoRoot: string, args: readonly string[]): Promise<v
 	const { packageName, remainingArgs } = parsePackageArg(args);
 	const slug = remainingArgs[0];
 	if (!slug) {
-		fail("Usage: spec-tools scaffold decision [--package <name>] <kebab-slug> [title...]");
+		fail('Usage: spec-tools scaffold decision [--package <name>] <kebab-slug> [title...]');
 	}
 	if (!SLUG_RE.test(slug)) {
 		fail(`Slug must be lowercase alphanumeric and hyphens: ${slug}`);
 	}
-	const title = remainingArgs.slice(1).join(" ") || slug;
+	const title = remainingArgs.slice(1).join(' ') || slug;
 
-	let targetDir = join(repoRoot, "docs/decisions");
-	let namespace = "root";
+	let targetDir = join(repoRoot, 'docs/decisions');
+	let namespace = 'root';
 
 	if (packageName) {
 		const pkgs = await discoverPackages(repoRoot);
@@ -96,10 +90,10 @@ async function cmdDecision(repoRoot: string, args: readonly string[]): Promise<v
 				packageName,
 				pkgs.map((p) => p.name),
 			);
-			const hint = suggestions.length > 0 ? ` (Did you mean: ${suggestions.join(", ")})` : "";
+			const hint = suggestions.length > 0 ? ` (Did you mean: ${suggestions.join(', ')})` : '';
 			fail(`Package not found: ${packageName}${hint}`);
 		}
-		targetDir = join(pkg.dir, "docs", "decisions");
+		targetDir = join(pkg.dir, 'docs', 'decisions');
 		namespace = pkg.name;
 	}
 
@@ -119,15 +113,15 @@ async function cmdTask(repoRoot: string, args: readonly string[]): Promise<void>
 	const { packageName, remainingArgs } = parsePackageArg(args);
 	const slug = remainingArgs[0];
 	if (!slug) {
-		fail("Usage: spec-tools scaffold task [--package <name>] <kebab-slug> [title...]");
+		fail('Usage: spec-tools scaffold task [--package <name>] <kebab-slug> [title...]');
 	}
 	if (!SLUG_RE.test(slug)) {
 		fail(`Slug must be lowercase alphanumeric and hyphens: ${slug}`);
 	}
-	const title = remainingArgs.slice(1).join(" ") || slug;
+	const title = remainingArgs.slice(1).join(' ') || slug;
 
-	let targetDir = join(repoRoot, "docs/task");
-	let namespace = "root";
+	let targetDir = join(repoRoot, 'docs/task');
+	let namespace = 'root';
 
 	if (packageName) {
 		const pkgs = await discoverPackages(repoRoot);
@@ -137,10 +131,10 @@ async function cmdTask(repoRoot: string, args: readonly string[]): Promise<void>
 				packageName,
 				pkgs.map((p) => p.name),
 			);
-			const hint = suggestions.length > 0 ? ` (Did you mean: ${suggestions.join(", ")})` : "";
+			const hint = suggestions.length > 0 ? ` (Did you mean: ${suggestions.join(', ')})` : '';
 			fail(`Package not found: ${packageName}${hint}`);
 		}
-		targetDir = join(pkg.dir, "docs", "task");
+		targetDir = join(pkg.dir, 'docs', 'task');
 		namespace = pkg.name;
 	}
 
@@ -171,36 +165,36 @@ function cmdAcceptance(repoRoot: string): void {
 function cmdPhase(repoRoot: string, args: readonly string[]): void {
 	const token = args[0];
 	if (!token) {
-		fail("Usage: spec-tools scaffold phase v<major>_<minor>_<phase> (e.g., v0_2_25)");
+		fail('Usage: spec-tools scaffold phase v<major>_<minor>_<phase> (e.g., v0_2_25)');
 	}
 	const point = parseImplPoint(token);
 	if (!point) {
 		fail(`Invalid format: ${token} (must be v<major>_<minor>_<phase>)`);
 	}
-	const PHASE_FILE = join(repoRoot, "spec/PHASE");
-	const before = existsSync(PHASE_FILE) ? readFileSync(PHASE_FILE, "utf8").trim() : "None";
-	writeFileSync(PHASE_FILE, `${token}\n`, "utf8");
+	const PHASE_FILE = join(repoRoot, 'spec/PHASE');
+	const before = existsSync(PHASE_FILE) ? readFileSync(PHASE_FILE, 'utf8').trim() : 'None';
+	writeFileSync(PHASE_FILE, `${token}\n`, 'utf8');
 	console.log(`spec/PHASE: ${before} → ${token}`);
 }
 
 export async function runScaffold(repoRoot: string = process.cwd(), args: string[]): Promise<void> {
 	const [command, ...subArgs] = args;
 	switch (command) {
-		case "decision":
+		case 'decision':
 			await cmdDecision(repoRoot, subArgs);
 			return;
-		case "task":
+		case 'task':
 			await cmdTask(repoRoot, subArgs);
 			return;
-		case "acceptance":
+		case 'acceptance':
 			cmdAcceptance(repoRoot);
 			return;
-		case "phase":
+		case 'phase':
 			cmdPhase(repoRoot, subArgs);
 			return;
 		default:
 			fail(
-				`Unknown sub-command: ${command ?? "(none)"}\nUsage: spec-tools scaffold <decision|task|acceptance|phase>`,
+				`Unknown sub-command: ${command ?? '(none)'}\nUsage: spec-tools scaffold <decision|task|acceptance|phase>`,
 			);
 	}
 }

@@ -1,18 +1,14 @@
 // spec/*.md の条項属性行(00-conventions.md)をパースする。
 
-import { readdir, readFile } from "node:fs/promises";
-import { join } from "node:path";
-import {
-	IMPL_TOKEN_SOURCE,
-	type ImplPoint,
-	parseImplPoint,
-} from "./implPoint.ts";
+import { readdir, readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { IMPL_TOKEN_SOURCE, type ImplPoint, parseImplPoint } from './implPoint.ts';
 
 export interface ClauseInfo {
 	readonly id: string;
-	readonly status: "active" | "withdrawn";
+	readonly status: 'active' | 'withdrawn';
 	readonly since: string;
-	readonly kind: "規範" | "情報";
+	readonly kind: '規範' | '情報';
 	/** plan 版 + Phase。`since`(spec version)とは別概念(00-conventions.md)。 */
 	readonly impl: ImplPoint;
 	readonly file: string;
@@ -23,11 +19,11 @@ export interface ClauseInfo {
 }
 
 export const CLAUSE_ID_PATTERN =
-	"K-(?:CORE|TARGET-[A-Z0-9]{3,8}|PROFILE-[A-Z0-9]{2,8})-[A-Z]+-\\d{3}";
+	'K-(?:CORE|TARGET-[A-Z0-9]{3,8}|PROFILE-[A-Z0-9]{2,8})-[A-Z]+-\\d{3}';
 export const CLAUSE_ID_RE = new RegExp(`^${CLAUSE_ID_PATTERN}$`);
 const HEADING_RE = new RegExp(`^##\\s+(${CLAUSE_ID_PATTERN})\\s+(.+)$`);
 const ATTR_RE = new RegExp(
-	"^\\*\\*属性\\*\\*: `status: (active|withdrawn)` / `since: ([\\d.]+)` / " +
+	'^\\*\\*属性\\*\\*: `status: (active|withdrawn)` / `since: ([\\d.]+)` / ' +
 		`\`kind: (規範|情報)\` / \`impl: (${IMPL_TOKEN_SOURCE})\`\\s*$`,
 );
 
@@ -38,7 +34,7 @@ async function walkMarkdownFiles(dir: string): Promise<string[]> {
 		const path = join(dir, entry.name);
 		if (entry.isDirectory()) {
 			files.push(...(await walkMarkdownFiles(path)));
-		} else if (entry.isFile() && entry.name.endsWith(".md")) {
+		} else if (entry.isFile() && entry.name.endsWith('.md')) {
 			files.push(path);
 		}
 	}
@@ -56,10 +52,10 @@ export async function parseSpecClauses(
 	const seenIds = new Map<string, string>();
 
 	for (const file of files) {
-		const lines = (await readFile(file, "utf8")).split("\n");
+		const lines = (await readFile(file, 'utf8')).split('\n');
 		let inFence = false;
 		for (let i = 0; i < lines.length; i++) {
-			if (lines[i]?.trimStart().startsWith("```")) {
+			if (lines[i]?.trimStart().startsWith('```')) {
 				inFence = !inFence;
 				continue;
 			}
@@ -86,10 +82,7 @@ export async function parseSpecClauses(
 			seenIds.set(id, file);
 
 			let attrLineIndex = i + 1;
-			while (
-				attrLineIndex < lines.length &&
-				lines[attrLineIndex]?.trim() === ""
-			) {
+			while (attrLineIndex < lines.length && lines[attrLineIndex]?.trim() === '') {
 				attrLineIndex++;
 			}
 			const attrMatch = lines[attrLineIndex]?.match(ATTR_RE);
@@ -116,9 +109,9 @@ export async function parseSpecClauses(
 
 			clauses.push({
 				id,
-				status: status as "active" | "withdrawn",
+				status: status as 'active' | 'withdrawn',
 				since,
-				kind: kind as "規範" | "情報",
+				kind: kind as '規範' | '情報',
 				impl,
 				file,
 				line: i + 1,
@@ -128,9 +121,7 @@ export async function parseSpecClauses(
 	}
 
 	if (clauses.length === 0) {
-		throw new Error(
-			"走査して得た条項が0件(00-conventions.md「走査が空振りしたときは失敗する」)",
-		);
+		throw new Error('走査して得た条項が0件(00-conventions.md「走査が空振りしたときは失敗する」)');
 	}
 
 	return clauses;

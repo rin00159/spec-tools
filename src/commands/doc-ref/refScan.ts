@@ -5,32 +5,26 @@
 // (@kata2/core:200, kata2:200 等)の参照を走査し、実体または stub が実在することを機械検査する。
 // 空振り防止のため、走査対象が0件または参照が0件の場合は throw する。
 
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
-import { discoverPackages, type PackageEntry } from "./closure.ts";
-import { resolveDocRef } from "./show.ts";
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join, relative } from 'node:path';
+import { discoverPackages, type PackageEntry } from './closure.ts';
+import { resolveDocRef } from './show.ts';
 
-export const SCAN_ROOTS = [
-	"docs",
-	"spec",
-	"packages",
-	".claude",
-	".agents",
-] as const;
-export const ROOT_FILES = ["CLAUDE.md", "AGENTS.md"] as const;
+export const SCAN_ROOTS = ['docs', 'spec', 'packages', '.claude', '.agents'] as const;
+export const ROOT_FILES = ['CLAUDE.md', 'AGENTS.md'] as const;
 
 export const HISTORICAL_PREFIXES = [
-	"docs/acceptance/",
-	"docs/plan/0_1/done/",
-	"docs/plan/0_2/done/",
-	"docs/plan/0_2/origin/",
-	"docs/plan/0_3/done/",
-	"docs/history/",
+	'docs/acceptance/',
+	'docs/plan/0_1/done/',
+	'docs/plan/0_2/done/',
+	'docs/plan/0_2/origin/',
+	'docs/plan/0_3/done/',
+	'docs/history/',
 ] as const;
 
 export interface ExtractedRef {
 	readonly raw: string;
-	readonly type: "decision" | "task" | "namespaced";
+	readonly type: 'decision' | 'task' | 'namespaced';
 	readonly ref: string;
 	readonly line: number;
 }
@@ -39,8 +33,7 @@ const DECISION_PATH_RE =
 	/(?:^|[^\w./-])(?:docs\/)?decisions\/(\d{3})(?:-[a-z0-9-]+(?:\.md)?)?(?=$|[^\w./-])/g;
 const TASK_PATH_RE =
 	/(?:^|[^\w./-])(?:docs\/)?task\/(\d{3})(?:-[a-z0-9-]+(?:\.md)?)?(?=$|[^\w./-])/g;
-const NAMESPACED_REF_RE =
-	/(?:^|[^\w./-])(@kata2\/[a-z0-9_-]+|kata2):(\d{3})(?=$|[^\w./-])/g;
+const NAMESPACED_REF_RE = /(?:^|[^\w./-])(@kata2\/[a-z0-9_-]+|kata2):(\d{3})(?=$|[^\w./-])/g;
 
 /** 例示や文法説明のパターン(実在検査の対象外) */
 function isExampleLine(line: string): boolean {
@@ -58,7 +51,7 @@ function isExampleLine(line: string): boolean {
 export function extractDocRefs(text: string): ExtractedRef[] {
 	const results: ExtractedRef[] = [];
 	const seen = new Set<string>();
-	const lines = text.split("\n");
+	const lines = text.split('\n');
 
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i];
@@ -75,7 +68,7 @@ export function extractDocRefs(text: string): ExtractedRef[] {
 				seen.add(key);
 				results.push({
 					raw: match[0].trim(),
-					type: "decision",
+					type: 'decision',
 					ref: num,
 					line: lineNo,
 				});
@@ -90,7 +83,7 @@ export function extractDocRefs(text: string): ExtractedRef[] {
 				seen.add(key);
 				results.push({
 					raw: match[0].trim(),
-					type: "task",
+					type: 'task',
 					ref: num,
 					line: lineNo,
 				});
@@ -107,7 +100,7 @@ export function extractDocRefs(text: string): ExtractedRef[] {
 				seen.add(key);
 				results.push({
 					raw: match[0].trim(),
-					type: "namespaced",
+					type: 'namespaced',
 					ref: namespaced,
 					line: lineNo,
 				});
@@ -131,7 +124,7 @@ export function walkMarkdownFiles(dir: string): string[] {
 		const fullPath = join(dir, entry.name);
 		if (entry.isDirectory()) {
 			files.push(...walkMarkdownFiles(fullPath));
-		} else if (entry.isFile() && entry.name.endsWith(".md")) {
+		} else if (entry.isFile() && entry.name.endsWith('.md')) {
 			files.push(fullPath);
 		}
 	}
@@ -170,7 +163,7 @@ export async function validateDocRefsInRepo(
 	];
 
 	if (markdownFiles.length === 0) {
-		throw new Error("走査対象の markdown ファイルが0件です(空振り防止)");
+		throw new Error('走査対象の markdown ファイルが0件です(空振り防止)');
 	}
 
 	let totalRefs = 0;
@@ -178,14 +171,14 @@ export async function validateDocRefsInRepo(
 
 	let rootDecisionsFiles: string[] = [];
 	try {
-		rootDecisionsFiles = readdirSync(join(repoRoot, "docs", "decisions"));
+		rootDecisionsFiles = readdirSync(join(repoRoot, 'docs', 'decisions'));
 	} catch {
 		// docs/decisions が存在しない場合
 	}
 
 	let rootTaskFiles: string[] = [];
 	try {
-		rootTaskFiles = readdirSync(join(repoRoot, "docs", "task"));
+		rootTaskFiles = readdirSync(join(repoRoot, 'docs', 'task'));
 	} catch {
 		// docs/task が存在しない場合
 	}
@@ -196,20 +189,17 @@ export async function validateDocRefsInRepo(
 			continue;
 		}
 
-		const text = readFileSync(filePath, "utf8");
+		const text = readFileSync(filePath, 'utf8');
 		const refs = extractDocRefs(text);
 		totalRefs += refs.length;
 
 		for (const refItem of refs) {
-			if (refItem.type === "decision" || refItem.type === "task") {
+			if (refItem.type === 'decision' || refItem.type === 'task') {
 				const numStr = refItem.ref;
-				const subDir = refItem.type === "decision" ? "decisions" : "task";
-				const rootFilesForType =
-					refItem.type === "decision" ? rootDecisionsFiles : rootTaskFiles;
+				const subDir = refItem.type === 'decision' ? 'decisions' : 'task';
+				const rootFilesForType = refItem.type === 'decision' ? rootDecisionsFiles : rootTaskFiles;
 				// 実体でも stub でもよい。根に <NNN>- で始まる md が在れば参照は切れていない。
-				const found = rootFilesForType.some(
-					(f) => f.startsWith(`${numStr}-`) && f.endsWith(".md"),
-				);
+				const found = rootFilesForType.some((f) => f.startsWith(`${numStr}-`) && f.endsWith('.md'));
 				if (!found) {
 					violations.push(
 						`${relFile}:${refItem.line}: 存在しない ${refItem.type} 参照 docs/${subDir}/${numStr}`,
@@ -220,14 +210,14 @@ export async function validateDocRefsInRepo(
 				let resolved = false;
 				let lastErr: unknown;
 				try {
-					await resolveDocRef(repoRoot, "decision", refItem.ref, pkgs);
+					await resolveDocRef(repoRoot, 'decision', refItem.ref, pkgs);
 					resolved = true;
 				} catch (err) {
 					lastErr = err;
 				}
 				if (!resolved) {
 					try {
-						await resolveDocRef(repoRoot, "task", refItem.ref, pkgs);
+						await resolveDocRef(repoRoot, 'task', refItem.ref, pkgs);
 						resolved = true;
 					} catch (err) {
 						lastErr = err;
@@ -243,7 +233,7 @@ export async function validateDocRefsInRepo(
 	}
 
 	if (totalRefs === 0) {
-		throw new Error("走査された参照が0件です(空振り防止)");
+		throw new Error('走査された参照が0件です(空振り防止)');
 	}
 
 	return {

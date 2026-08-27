@@ -1,19 +1,23 @@
-import { readFileSync, existsSync } from "node:fs";
-import { resolve } from "node:path";
-import { loadConfig } from "../config.ts";
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { loadConfig } from '../config.ts';
 
 export interface CardViolation {
-	kind: "tooLong" | "missingHeading";
+	kind: 'tooLong' | 'missingHeading';
 	detail: string;
 }
 
-export function checkCard(text: string, maxLines: number, requiredHeadings: string[]): CardViolation[] {
+export function checkCard(
+	text: string,
+	maxLines: number,
+	requiredHeadings: string[],
+): CardViolation[] {
 	const violations: CardViolation[] = [];
-	const lines = text.replace(/\s+$/, "").split("\n");
+	const lines = text.replace(/\s+$/, '').split('\n');
 
 	if (lines.length > maxLines) {
 		violations.push({
-			kind: "tooLong",
+			kind: 'tooLong',
 			detail: `${lines.length} lines (max ${maxLines}).`,
 		});
 	}
@@ -21,7 +25,7 @@ export function checkCard(text: string, maxLines: number, requiredHeadings: stri
 	for (const heading of requiredHeadings) {
 		if (!lines.some((line) => line.startsWith(heading))) {
 			violations.push({
-				kind: "missingHeading",
+				kind: 'missingHeading',
 				detail: `Missing required heading: ${heading}`,
 			});
 		}
@@ -32,10 +36,10 @@ export function checkCard(text: string, maxLines: number, requiredHeadings: stri
 
 export function runCheckCurrentTask(cwd: string = process.cwd()): void {
 	const config = loadConfig(cwd).checkCurrentTask || {};
-	const file = config.file || "docs/currentTask.ai.md";
+	const file = config.file || 'docs/currentTask.ai.md';
 	const maxLines = config.maxLines || 80;
 	// 汎用ツールとしてのデフォルト値（英語）
-	const headings = config.headings || ["## Current Status", "## Next Steps", "## Blockers"];
+	const headings = config.headings || ['## Current Status', '## Next Steps', '## Blockers'];
 
 	const cardPath = resolve(cwd, file);
 	if (!existsSync(cardPath)) {
@@ -44,7 +48,7 @@ export function runCheckCurrentTask(cwd: string = process.cwd()): void {
 		return;
 	}
 
-	const text = readFileSync(cardPath, "utf8");
+	const text = readFileSync(cardPath, 'utf8');
 	const violations = checkCard(text, maxLines, headings);
 
 	if (violations.length > 0) {

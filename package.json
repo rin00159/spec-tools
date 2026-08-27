@@ -1,26 +1,26 @@
 {
-  "name": "spec-tools",
-  "version": "0.1.0",
-  "description": "Spec-driven project management and AI collaboration tools",
-  "type": "module",
-  "engines": {
-    "node": ">=22"
-  },
-  "bin": {
-    "spec-tools": "./dist/cli.js"
-  },
-  "scripts": {
-    "build": "tsdown",
-    "dev": "tsdown --watch",
-    "test": "vitest run",
-    "lint": "biome check .",
-    "lint:fix": "biome check --write ."
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^2.5.5",
-    "@types/node": "^26.1.1",
-    "tsdown": "^0.22.14",
-    "typescript": "^7.0.2",
-    "vitest": "^4.1.10"
-  }
+	"name": "spec-tools",
+	"version": "0.1.0",
+	"description": "Spec-driven project management and AI collaboration tools",
+	"type": "module",
+	"engines": {
+		"node": ">=22"
+	},
+	"bin": {
+		"spec-tools": "./dist/cli.js"
+	},
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"test": "vitest run",
+		"lint": "biome check .",
+		"lint:fix": "biome check --write ."
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.5.5",
+		"@types/node": "^26.1.1",
+		"tsdown": "^0.22.14",
+		"typescript": "^7.0.2",
+		"vitest": "^4.1.10"
+	}
 }

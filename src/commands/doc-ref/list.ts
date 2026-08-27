@@ -8,11 +8,10 @@
 // こちらは依存閉包を横断して見るための出力である。
 // docs/task/README.md に残るのは「どれを先にやるか」の表だけ(決定8)。
 
-import { readdirSync, readFileSync, realpathSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
-import { discoverPackages, type PackageEntry } from "./closure.ts";
-import type { DocType } from "./show.ts";
-
+import { readdirSync, readFileSync, realpathSync } from 'node:fs';
+import { join, relative } from 'node:path';
+import { discoverPackages, type PackageEntry } from './closure.ts';
+import type { DocType } from './show.ts';
 
 // ファイル名に `_` を含む legacy が在る(036-v0_2-after-tasks.md)。
 const NUMBERED_FILE_RE = /^(\d{3})-[a-z0-9_-]+\.md$/;
@@ -29,20 +28,20 @@ export interface DocEntry {
 }
 
 function firstTitle(content: string): string {
-	const line = content.split("\n", 1)[0] ?? "";
+	const line = content.split('\n', 1)[0] ?? '';
 	return line
-		.replace(/^#+\s*/, "")
-		.replace(/^\d{3}\s+/, "")
+		.replace(/^#+\s*/, '')
+		.replace(/^\d{3}\s+/, '')
 		.trim();
 }
 
 function firstState(content: string): string {
 	const m = content.match(/^\*\*状態\*\*:\s*(.+)$/m);
 	if (!m?.[1]) {
-		return "—";
+		return '—';
 	}
 	// 太字・リンクを落として1行に畳む
-	return m[1].replace(/\*\*/g, "").replace(/\s+/g, " ").trim();
+	return m[1].replace(/\*\*/g, '').replace(/\s+/g, ' ').trim();
 }
 
 /**
@@ -54,13 +53,13 @@ export function collectDocs(
 	docType: DocType,
 	packages: ReadonlyArray<PackageEntry>,
 ): DocEntry[] {
-	const subDir = docType === "decision" ? "decisions" : "task";
+	const subDir = docType === 'decision' ? 'decisions' : 'task';
 	const entries: DocEntry[] = [];
 	// discoverPackages は realpath で畳むので、根の判定も realpath で揃える(macOS の /var → /private/var)。
 	const realRoot = realpathSync(repoRoot);
 
 	for (const pkg of packages) {
-		const dir = join(pkg.dir, "docs", subDir);
+		const dir = join(pkg.dir, 'docs', subDir);
 		let names: string[];
 		try {
 			names = readdirSync(dir);
@@ -75,7 +74,7 @@ export function collectDocs(
 			}
 			const num = m[1];
 			const filePath = join(dir, name);
-			const content = readFileSync(filePath, "utf8");
+			const content = readFileSync(filePath, 'utf8');
 			const isStub = STUB_RE.test(content);
 			if (isStub) {
 				// 実体は移設先の package 側で拾う
@@ -97,11 +96,7 @@ export function collectDocs(
 	return entries;
 }
 
-function render(
-	repoRoot: string,
-	docType: DocType,
-	entries: readonly DocEntry[],
-): string {
+function render(repoRoot: string, docType: DocType, entries: readonly DocEntry[]): string {
 	const byOwner = new Map<string, DocEntry[]>();
 	for (const e of entries) {
 		const list = byOwner.get(e.owner) ?? [];
@@ -111,41 +106,43 @@ function render(
 
 	const owners = [...byOwner.keys()].sort((a, b) => {
 		// kata2(根)を先頭に、以降は名前順
-		if (a.includes("/") !== b.includes("/")) {
-			return a.includes("/") ? 1 : -1;
+		if (a.includes('/') !== b.includes('/')) {
+			return a.includes('/') ? 1 : -1;
 		}
 		return a.localeCompare(b);
 	});
 
 	const lines: string[] = [
 		`# ${docType} 一覧(依存閉包の走査。実体の在り処ごと。計 ${entries.length}件)`,
-		"",
+		'',
 	];
 	for (const owner of owners) {
-		const list = (byOwner.get(owner) ?? []).sort((a, b) =>
-			a.number.localeCompare(b.number),
-		);
+		const list = (byOwner.get(owner) ?? []).sort((a, b) => a.number.localeCompare(b.number));
 		lines.push(`## ${owner}(${list.length}件)`);
 		const width = Math.max(...list.map((e) => e.reference.length));
 		for (const e of list) {
 			lines.push(`  ${e.reference.padEnd(width)}  ${e.title}`);
-			lines.push(`  ${" ".repeat(width)}  状態: ${e.state}`);
-			lines.push(`  ${" ".repeat(width)}  ${relative(repoRoot, e.filePath)}`);
+			lines.push(`  ${' '.repeat(width)}  状態: ${e.state}`);
+			lines.push(`  ${' '.repeat(width)}  ${relative(repoRoot, e.filePath)}`);
 		}
-		lines.push("");
+		lines.push('');
 	}
 	lines.push(
 		`本文を読むのは \`pnpm ${docType}:show <参照>\`。`,
-		docType === "task"
-			? "着手順の判断は docs/task/README.md の表が持つ(docs/decisions/109 決定8)。"
-			: "",
+		docType === 'task'
+			? '着手順の判断は docs/task/README.md の表が持つ(docs/decisions/109 決定8)。'
+			: '',
 	);
-	return lines.filter((l) => l !== undefined).join("\n");
+	return lines.filter((l) => l !== undefined).join('\n');
 }
 
-export async function runList(repoRoot: string, docType: string | undefined, filter: string | undefined): Promise<void> {
-	if (docType !== "decision" && docType !== "task") {
-		console.error("Usage: spec-tools doc-ref list <decision|task> [--package <name>]");
+export async function runList(
+	repoRoot: string,
+	docType: string | undefined,
+	filter: string | undefined,
+): Promise<void> {
+	if (docType !== 'decision' && docType !== 'task') {
+		console.error('Usage: spec-tools doc-ref list <decision|task> [--package <name>]');
 		process.exitCode = 2;
 		return;
 	}
