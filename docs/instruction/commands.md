@@ -6,8 +6,28 @@ This tool functions as a CLI (`node dist/cli.mjs <command>` or `pnpm spec-tools 
 Verifies the alignment between implementations (source code, test files) and specification clauses (Clauses).
 Checks whether "Normative" clauses expected to be implemented by the current Phase have corresponding tests, and ensures there are no references to unknown clauses.
 
+Answers three questions:
+1. **Tests without a clause ID** — tests in `packages/` and `examples/` whose names do not start with a clause ID (should be 0).
+2. **Clauses with no implementation** — `kind: normative`, `status: active` clauses whose `impl` version has been reached but have no associated test or registered error code (should be 0).
+3. **References to non-existent clause IDs** — tests or error messages that reference clause IDs not found in any spec root (should be 0).
+
 ```bash
 spec-tools spec-coverage [--phase <override_phase>]
+```
+
+`--phase` temporarily overrides the current position read from `spec/PHASE`. Providing it more than once is an error. See [spec/00-conventions.md](../../spec/00-conventions.md) for the full traceability rules.
+
+## `spec-show`
+Prints the full text of a single spec clause by its ID, without loading the entire spec file.
+Useful for reducing AI context consumption when you only need one clause from a large spec file.
+
+```bash
+spec-tools spec-show <clause-id>
+```
+
+Example:
+```bash
+spec-tools spec-show K-CORE-ERR-001
 ```
 
 ## `spec-index`

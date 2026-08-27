@@ -1,116 +1,98 @@
-# spec-tools の規約
+# spec-tools Conventions
 
-## spec の走査ルート
+## Spec Scan Roots
 
-### ルートは glob で発見する(必須)
+### Roots are discovered via glob (required)
 
-条項の走査ルートは **根の `spec/` と `packages/*/docs/spec/`** である。
-`spec:index` / `spec:show` / `spec:coverage` は**このルートを glob で発見する(必須)**。
-**個々の package 名を検査側に直書きしてはならない(禁止)** — package の増減が検査側の変更を
-要求する形にすると、追随漏れが**カバレッジの静かな欠落**になる(「検証用モデル」と同じ理由)。
+The scan roots for clause discovery are **the root `spec/` directory and `packages/*/docs/spec/`**.
+`spec:index`, `spec:show`, and `spec:coverage` **must discover these roots via glob (required)**.
+**Hard-coding individual package names on the checking side is forbidden** — if package additions or removals require a corresponding change on the checking side, missed updates become **silent coverage gaps** (same reasoning as the verification model).
 
-### 走査が空振りしたときは失敗する(必須)
+### Fail when a scan yields zero results (required)
 
-- **発見したルートが0件のとき、ツールは成功してはならない(禁止)。**
-- **走査して得た条項が0件のとき、ツールは成功してはならない(禁止)。**
+- **When zero roots are discovered, the tool must not succeed (forbidden).**
+- **When a scan yields zero clauses, the tool must not succeed (forbidden).**
 
-0件は「違反0件」ではなく「**測れていない**」である。
-条項を1件も読めていない状態で「未実装条項0件」と報告する検査は、無検査より悪い —
-**壊れた検査は緑を出し続け、検出すべきドリフトを見逃させる**。
+Zero results mean "not measured", not "zero violations".
+A checker that reports "0 unimplemented clauses" while having read no clauses at all is worse than no check — **a broken check stays green and silently misses the drift it is supposed to detect**.
 
-ルートの一部だけが glob から漏れる中間の失敗は、この2つでは捕まらない。
-これに対する常設のラチェットは **`spec/INDEX.md` の鮮度検査**(`check:spec-index`)である —
-ルートが1つ落ちれば索引が現状と食い違い、`pnpm lint` が落ちる。
-**索引を生成物として検査し続けることが、走査範囲の縮小を検出する手段そのものである。**
+Partial failures — where only some roots are missed by the glob — are not caught by these two rules alone.
+The permanent ratchet for that is the **`spec/INDEX.md` freshness check** (`check:spec-index`):
+if any root drops out, the index diverges from the current state and `pnpm lint` fails.
+**Continuously checking the index as a generated artifact is the mechanism for detecting a shrinking scan scope.**
 
-### ルートをまたぐ条項 ID の重複を検出する(必須)
+### Detect duplicate clause IDs across roots (required)
 
-同じ条項 ID が2箇所以上で見出しになっていたら error にする(必須)。
-**ルートをまたぐ場合も同じ**である。
-規範そのもの(欠番・再利用・振り直しの禁止)は `packages/core/docs/spec/00-conventions.md`「条項 ID の書式」が持つ —
-**この節が定めるのはその機械検出の義務**であって、規則の重複ではない。
-**置き場の分散は採番の分散ではない。**
+If the same clause ID appears as a heading in more than one location, that is an error (required).
+**This applies across roots as well.**
+The normative rule itself (no gaps, no reuse, no renumbering) lives in `packages/core/docs/spec/00-conventions.md` under "Clause ID format" —
+**this section defines only the obligation to detect duplicates mechanically**; it does not duplicate the rule.
+**Distributing storage is not the same as distributing the numbering scheme.**
 
-> **適用範囲の注記**: この重複検出規則は **kata2 リポジトリの走査ルート(`spec/` と `packages/*/docs/spec/`)にのみ適用される**。
-> kata フレームワーク(kata2 を利用する外部リポジトリや kata フレームワークとしての概念的意味定義)とは無関係である。
-> 「条項 ID はリポジトリ全体で一意でなければならない」はあくまで **kata2 リポジトリ内での機械検査上の制約**であり、
-> kata フレームワークの仕様として外部に課す義務ではない。
+> **Scope note**: This duplicate-detection rule applies **only to the scan roots of this repository (`spec/` and `packages/*/docs/spec/`)**.
+> It is unrelated to the kata framework (external repositories that use kata2, or the conceptual meaning of kata as a framework).
+> "Clause IDs must be unique across the repository" is a mechanical constraint of this repository's checking infrastructure, not an obligation imposed externally by the kata framework spec.
 
-### CODE は全走査ルートを通じて一意にする(必須)
+### CODEs must be unique across all scan roots (required)
 
-`packages/core/docs/spec/00-conventions.md`「条項 ID の書式」が定める CODE の一意性は
-**「そのライブラリと依存元」の範囲**である。**ここではそれに加えて、
-走査ルートに居る全 package の CODE が互いに衝突しないことを要求する(必須)。**
+The uniqueness of CODE defined in `packages/core/docs/spec/00-conventions.md` ("Clause ID format") covers **the scope of a library and its dependents**.
+**Here, in addition to that, all packages present in the scan roots must have non-colliding CODEs (required).**
 
-理由は条項 ID の重複検出と同じで、**索引が全ルートを合わせた1つ**だからである(次節) —
-CODE が衝突すると条項 ID から所有 package を一意に引けず、
-`pnpm lint`(`check:reference-direction`)が**条項参照の向き**(package は依存元の条項を名乗れない)を
-判定できなくなる。
+The reason is the same as for duplicate clause ID detection: **the index is a single unified index over all roots** (see next section).
+If CODEs collide, it becomes impossible to uniquely identify the owning package from a clause ID,
+and `pnpm lint` (`check:reference-direction`) can no longer determine **the direction of clause references** (a package must not claim clause IDs belonging to its dependents).
 
-> **適用範囲の注記**: これは走査ルートを1つの索引に束ねるこのリポジトリの機械検査上の制約であり、
-> kata フレームワークの仕様として外部に課す義務ではない(前節の注記と同じ)。
+> **Scope note**: This is a mechanical constraint of bundling all scan roots into a single index in this repository, not an obligation imposed externally by the kata framework spec (same as the previous section's note).
 
-### 索引は全ルートを合わせた1つ(必須)
+### The index covers all roots as one (required)
 
-`spec/INDEX.md` は**すべての走査ルートの条項を合わせた単一の索引**である(必須)。
-package ごとに索引を分けることを禁止する — 分けると `pnpm spec:show` の利用者が
-「どの索引を見るか」を先に判断することになり、**条項 ID から本文へ1ホップで届く**という
-索引の存在理由が失われる(`docs/decisions/089`)。
+`spec/INDEX.md` is **a single index covering clauses from all scan roots combined (required)**.
+Splitting the index per package is forbidden — doing so forces users of `pnpm spec:show` to first decide "which index to look at", which defeats the purpose of the index: **reach any clause in one hop from its ID** (see `docs/decisions/089`).
 
 
-## トレーサビリティ — 「実装が条項に対応している」の検出規約
+## Traceability — Conventions for Detecting "Implementation Corresponds to a Clause"
 
-spec:coverage は自前の静的解析をしない。検出源は次の**2つだけ**:
+`spec:coverage` performs no custom static analysis. There are exactly **two** detection sources:
 
-- (a) **テスト名の先頭の条項 ID**
-- (b) **エラーコード登録簿**(`packages/core/docs/spec/00-conventions.md` の K-CORE-ERR-002)に登録され、条項 ID を持つエラーコード
+- **(a) A clause ID at the start of a test name**
+- **(b) An error code that is registered in the error code registry** (`packages/core/docs/spec/00-conventions.md`, K-CORE-ERR-002) and carries a clause ID
 
-つまり「実装がある」= その条項を参照するテストまたは登録済みエラーコードが存在すること。
+In other words, "has an implementation" means: a test or a registered error code that references the clause exists.
 
-### spec:coverage が答える3つの問い
+### The three questions `spec:coverage` answers
 
-1. **条項 ID が付いていないテスト**の列挙(0件が正常)
-2. **実装もテストも無い条項**の列挙(0件が正常)。ただし対象は
-   **`impl` の版・Phase に到達済みの `kind: 規範` かつ `status: active` の条項に限る**。
-   到達済みの判定は `impl` と現在の版・Phase を3整数の辞書式で比較して行う(必須)。
-   これが無いと、Phase 0 で書いた将来条項が Phase 1 の完了判定と矛盾する
-3. **存在しない条項 ID を参照しているテスト / エラーメッセージ**の列挙(0件が正常)
+1. **Tests without a clause ID** — enumeration of tests whose names do not start with a clause ID (0 is normal).
+2. **Clauses with no implementation or test** — enumeration of such clauses (0 is normal). The scope is limited to **`kind: normative` and `status: active` clauses whose `impl` version/phase has been reached**.
+   Reachedness is determined by a three-integer lexicographic comparison of `impl` against the current version and phase (required).
+   Without this, a future-phase clause written in phase 0 would appear to contradict a phase 1 completion check.
+3. **Tests or error messages referencing non-existent clause IDs** — enumeration of such references (0 is normal).
 
-### 現在地(到達済みの版・Phase)の在処
+### Where the current position (reached version/phase) lives
 
-問い2 が要求する「現在地」は **`spec/PHASE` に置く**(必須)。書式は `impl` と同じ
-`v<major>_<minor>_<phase>` の1トークン。
+The "current position" required by question 2 **must be stored in `spec/PHASE` (required)**. The format is the same single token as `impl`: `v<major>_<minor>_<phase>`.
 
-**現在地の記述は1箇所に限る(必須)。** 検証ツールの起動設定(`package.json` の script 等)へ
-複製することを**禁止する** — 複製すると CI と検収が別の値を読み、
-**CI 側だけが弱い判定になる**(v0.1 の Phase 4 / 8 / 9 で実際に発生した。
-`docs/acceptance/phase-8.md` はこの二重化を回避手順として記録している)。
+**The current position must be written in exactly one place (required).** Duplicating it into tool invocation configuration (e.g. a `package.json` script) is **forbidden** — duplication causes CI and acceptance checks to read different values, making **CI use a weaker comparison** (this actually occurred in v0.1 phases 4, 8, and 9; `docs/acceptance/phase-8.md` records the duplicate as a pitfall to avoid).
 
-一時的な確認のために現在地を上書きする手段(`--phase` 引数等)を持ってよい(任意)。
-その場合、**上書きの指定が複数与えられたときは error にする(必須)**。
-先頭または末尾を黙って採ることを禁止する — 打った値が無視されたことに気づけない(C3)。
+A mechanism for temporarily overriding the current position (e.g. a `--phase` argument) is permitted (optional).
+If such a mechanism exists, **providing the override more than once must be an error (required)**.
+Silently taking the first or last value is forbidden — the user cannot know their input was ignored (C3).
 
-### 現在地より先の条項は報告する(必須)
+### Clauses beyond the current position must be reported (required)
 
-`impl` が現在地より先の条項は問い2 の対象にならない。これは意図した設計だが、
-**現在地の更新漏れと見分けがつかない**。したがって spec:coverage は
-**現在地より先の `impl` を持つ `status: active` の条項の件数と最大の `impl` を必ず出力する**。
+Clauses whose `impl` is ahead of the current position are excluded from question 2. This is intentional, but it is **indistinguishable from a forgotten position update**.
+Therefore, `spec:coverage` **must always output the count of `status: active` clauses with `impl` ahead of the current position, along with the maximum such `impl` value**.
 
-これは**失敗にしない(必須)**。将来 Phase の条項を先に書くことは `impl` の存在理由そのもの
-(そうでなければ Phase 0 で書いた条項が Phase 1 の完了判定と矛盾する)。
-禁止したいのは「黙っていること」であって「先に書くこと」ではない。
+**This must not be treated as a failure (required).** Writing future-phase clauses in advance is the entire purpose of `impl` (without it, a clause written in phase 0 would contradict a phase 1 completion check).
+What is forbidden is **staying silent about it**, not writing clauses ahead of time.
 
-### 先頭 ID が必須になる範囲
+### The scope in which a leading clause ID is required
 
-テスト名の先頭に条項 ID を置く規則(規則本体は `packages/core/docs/spec/00-conventions.md`「テスト名規約」)について、
-問い1 が課すのは **`packages/` と `examples/` のテスト**である。
-これらは条項を実装するコード(および参照アプリ)であり、
-**条項に対応しないテストが紛れていないこと**が問い1 の目的だからである。
+Regarding the rule that test names must begin with a clause ID (the rule itself lives in `packages/core/docs/spec/00-conventions.md` under "Test name conventions"):
+question 1 applies this rule to **tests under `packages/` and `examples/`**.
+These are the code (and reference applications) that implement clauses, and the goal of question 1 is to ensure **no tests have slipped in without a corresponding clause**.
 
-**`tools/` のテストは問い1 の対象外**(任意)。`tools/` は開発ツールであって
-条項の実装ではなく、対応する条項が無い。無理に既存の条項 ID を先頭へ置くと、
-**その条項の偽の実装証跡**になる(検出源(a)は先頭 ID を証跡として数えるため)。
-偽の証跡は、検出すべきドリフトを見逃させる点で無検査より悪い。
+**Tests under `tools/` are excluded from question 1 (optional).** `tools/` contains development tooling, not clause implementations, and there are no clauses to correspond to. Forcing an existing clause ID to the front of a tools test name would create **a false implementation trace** for that clause (since detection source (a) counts any leading ID as evidence).
+A false trace is worse than no check — it silently hides drift that should be detected.
 
-**問い3(存在しない条項 ID の参照)は `tools/` にも課す(必須)。**
-条項 ID を書くなら実在しなければならない、という規則に例外を作る理由は無い。
+**Question 3 (references to non-existent clause IDs) does apply to `tools/` (required).**
+There is no reason to exempt any location from the rule that a clause ID written anywhere must actually exist.
