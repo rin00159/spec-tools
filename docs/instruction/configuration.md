@@ -1,9 +1,9 @@
-# 設定ファイル (Configuration)
+# Configuration
 
-`spec-tools` は、リポジトリのルートに配置された設定ファイル（`spec-tools.config.json`）から設定を読み込みます。
-※ JSON ファイルのため、正規表現文字列を記述する際はバックスラッシュを二重にエスケープ（例: `\\b`）する必要があります。
+`spec-tools` loads its configuration from a file named `spec-tools.config.json` located at the root of your repository.
+*Note: Because this is a JSON file, regular expressions must use double-escaped backslashes (e.g., `\\b`).*
 
-以下は、利用可能なすべての設定項目を含む設定例です。
+Below is an example configuration that includes all available settings.
 
 ```json
 {
@@ -12,7 +12,7 @@
   "checkCurrentTask": {
     "file": "docs/task/README.md",
     "maxLines": 30,
-    "headings": ["現在の作業", "次にやること"]
+    "headings": ["Current Work", "Next Steps"]
   },
 
   "checkPlanLayout": {
@@ -63,8 +63,8 @@
   "clauseFormat": {
     "idPattern": "(K-[A-Z0-9]+(?:-[A-Z0-9]+)*)",
     "headingPattern": "^##\\s+(?<id>(?:K-[A-Z0-9]+(?:-[A-Z0-9]+)*))\\s+(?<title>.+)$",
-    "attrPattern": "\\*\\*属性\\*\\*:\\s*`status:\\s*([^`]+)`(?:,\\s*`since:\\s*([^`]+)`)?(?:,\\s*`kind:\\s*([^`]+)`)?(?:,\\s*`impl:\\s*([^`]+)`)?",
-    "normativeKinds": ["規範"],
+    "attrPattern": "\\*\\*Attributes\\*\\*:\\s*`status:\\s*([^`]+)`(?:,\\s*`since:\\s*([^`]+)`)?(?:,\\s*`kind:\\s*([^`]+)`)?(?:,\\s*`impl:\\s*([^`]+)`)?",
+    "normativeKinds": ["Normative"],
     "activeStatuses": ["active"]
   },
 

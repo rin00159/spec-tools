@@ -1,43 +1,43 @@
-# `spec-tools` リポジトリの内部構造
+# Internal Structure of the `spec-tools` Repository
 
-このドキュメントでは、`spec-tools` 自体の開発におけるディレクトリ構造や設計の前提について明文化します。
+This document outlines the directory structure and design assumptions for the development of `spec-tools` itself.
 
-## ディレクトリ構成
+## Directory Structure
 
 ```text
 spec-tools/
  ├── src/
- │    ├── cli.ts                # エントリポイント。引数パースと各コマンドへのディスパッチを行う
- │    ├── config.ts             # ユーザー設定 (spec-tools.config.ts) の読み込み・デフォルト値の定義
- │    └── commands/             # コマンドごとの実装ディレクトリ
- │         ├── spec-coverage/   # `spec-coverage` コマンドの実装
- │         ├── spec-index/      # `spec-index` コマンドの実装
- │         ├── doc-ref/         # `doc-ref` (list, show, index, check) コマンドの実装
- │         ├── scaffold/        # `scaffold` (decision, task, acceptance, phase) コマンドの実装
- │         ├── check-mirror.ts  # `check-mirror` コマンドの実装
- │         ├── check-plan-layout.ts # planファイル構成チェック
- │         └── check-current-task.ts# task構成チェック
+ │    ├── cli.ts                # Entry point. Handles argument parsing and command dispatching.
+ │    ├── config.ts             # Loads user configuration (spec-tools.config.json) and defines default values.
+ │    └── commands/             # Implementation directories for each command
+ │         ├── spec-coverage/   # Implementation of `spec-coverage`
+ │         ├── spec-index/      # Implementation of `spec-index`
+ │         ├── doc-ref/         # Implementation of `doc-ref` (list, show, index, check)
+ │         ├── scaffold/        # Implementation of `scaffold` (decision, task, acceptance, phase)
+ │         ├── check-mirror.ts  # Implementation of `check-mirror`
+ │         ├── check-plan-layout.ts # Plan layout structural check
+ │         └── check-current-task.ts# Task format structural check
  │
- ├── templates/                 # `scaffold` 用のデフォルトの Markdown テンプレート群
+ ├── templates/                 # Default Markdown templates for `scaffold`
  │    ├── decision.md
  │    ├── task.md
  │    └── acceptance.md
  │
- ├── fixtures/                  # テストケース用のダミーリポジトリやファイル群
+ ├── fixtures/                  # Dummy repositories and files for testing
  │
- ├── docs/                      # ツール自体の説明書 (このディレクトリ)
+ ├── docs/                      # Documentation for the tool itself (this directory)
  │
  ├── package.json
  ├── tsconfig.json
- ├── tsdown.config.ts           # tsdown によるビルド設定 (dist/ の生成)
- └── biome.json                 # Linter / Formatter の設定
+ ├── tsdown.config.ts           # tsdown build configuration (generates dist/)
+ └── biome.json                 # Linter / Formatter configuration
 ```
 
-## 設計の前提・制約
+## Design Assumptions and Constraints
 
-1. **純粋関数の分離**: 
-   複雑なパース処理や集計処理（例: `clause.ts` の `extractClauseBody`, `specRoots.ts` のパス解決）は副作用のない純粋関数としてテスト可能に設計されています。
-2. **外部依存の最小化**:
-   ツールの性質上、対象のリポジトリ（Node.js に限らず）を走査するため、npm パッケージマネージャー特有の制約（`package.json` が必須など）を強制せず、純粋なファイルシステム操作ベース（`fs/promises` 等）で解決を行います。
-3. **エラーメッセージの英語化**:
-   汎用ツールとして様々なプロジェクトで使われることを想定し、`throw new Error` や `console.*` への出力文言は英語ベースで記述されています（内部向け特定プロジェクトの用語は含めない）。
+1. **Separation of Pure Functions**: 
+   Complex parsing and aggregation logic (e.g., `extractClauseBody` in `clause.ts` or path resolution in `specRoots.ts`) are designed as side-effect-free pure functions to remain easily testable.
+2. **Minimizing External Dependencies**:
+   Due to the nature of the tool—which scans target repositories that may not necessarily be Node.js projects—it does not enforce npm-specific constraints (such as requiring a `package.json`). Instead, it relies on pure file system operations (like `fs/promises`) for resolution.
+3. **English Error Messages**:
+   Assuming usage as a generic tool across various projects, output messages in `throw new Error` or `console.*` are written in English. (Specific terminology intended only for internal projects should not be included).

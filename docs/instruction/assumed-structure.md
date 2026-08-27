@@ -1,80 +1,80 @@
-# 前提とするファイル構造と概念
+# Assumed File Structure and Concepts
 
-`spec-tools` は、対象となるリポジトリが特定のディレクトリ構造や概念に従って文書を配置していることを前提（またはデフォルトの規約）としています。
+`spec-tools` assumes that the target repository organizes its documents according to a specific directory structure and concepts (or default conventions).
 
-## 1. 概念: 到達点 (ImplPoint) と Phase
+## 1. Concept: Target Point (ImplPoint) and Phase
 
-本ツールはプロジェクトの進行を **Major.Minor.Phase**（例: `v0_1_16`）という到達点（ImplPoint）で管理します。
+This tool manages the progress of a project using a Target Point (ImplPoint) expressed as **Major.Minor.Phase** (e.g., `v0_1_16`).
 
-- 実行コードが現在どの Phase に到達しているかは、リポジトリルートの **`spec/PHASE`** ファイルに単一の文字列として記録されていることを前提とします（例: `v0_1_16`）。
-- 条項が `impl` 属性に指定した Phase が、現在地以下の場合は「実装済み（テスト対象）」としてカバレッジの対象になります。
+- It assumes that the current execution code Phase is recorded as a single string in the **`spec/PHASE`** file at the repository root (e.g., `v0_1_16`).
+- If the Phase specified in a clause's `impl` attribute is less than or equal to the current Phase, the clause is considered "implemented (testable)" and becomes a target for coverage.
 
-## 2. 前提とするファイル・ディレクトリ構造
+## 2. Assumed File and Directory Structure
 
-設定（`spec-tools.config.json`）で一部のパスは変更可能ですが、標準的には以下の構造を前提としています。
-モノレポ構成の場合、ルートディレクトリに加えて `packages/*` の配下にもそれぞれ固有のドキュメントを配置できます。
+While some paths can be changed in the configuration (`spec-tools.config.json`), the standard structure assumed is as follows.
+In a monorepo setup, you can place package-specific documents under `packages/*` in addition to the root directory.
 
 ```text
 <repo_root>/
  ├── spec/
- │    ├── PHASE               # 現在の到達点 (例: v0_1_16)
- │    ├── INDEX.md            # `spec-index` により自動生成される条項索引
- │    └── *.md                # 条項を定義する Markdown 仕様書
+ │    ├── PHASE               # Current progress point (e.g., v0_1_16)
+ │    ├── INDEX.md            # Auto-generated clause index by `spec-index`
+ │    └── *.md                # Markdown specification documents defining clauses
  │
  ├── docs/
- │    ├── decisions/          # アーキテクチャ決定記録 (ADR)
- │    │    ├── INDEX.md       # 自動生成される索引
- │    │    └── <NNN>-*.md     # `scaffold decision` で作られる文書 (NNNは連番)
+ │    ├── decisions/          # Architecture Decision Records (ADR)
+ │    │    ├── INDEX.md       # Auto-generated index
+ │    │    └── <NNN>-*.md     # Documents created by `scaffold decision` (NNN is sequential)
  │    │
- │    ├── task/               # タスク記録
- │    │    ├── INDEX.md       # 自動生成される索引
- │    │    ├── README.md      # 着手順の判断などを手書きで残す正本
- │    │    └── <NNN>-*.md     # `scaffold task` で作られる文書
+ │    ├── task/               # Task records
+ │    │    ├── INDEX.md       # Auto-generated index
+ │    │    ├── README.md      # Manual tracking for task execution order and decisions
+ │    │    └── <NNN>-*.md     # Documents created by `scaffold task`
  │    │
  │    ├── plan/
  │    │    └── <major>_<minor>/
- │    │         └── phase<N>.md   # 各フェーズの計画書
+ │    │         └── phase<N>.md   # Plan document for each phase
  │    │
  │    └── acceptance/
- │         └── phase-v<major>_<minor>-<N>.md # `scaffold acceptance` で作られる検収証跡
+ │         └── phase-v<major>_<minor>-<N>.md # Acceptance records created by `scaffold acceptance`
  │
  ├── packages/
  │    └── <package_name>/
  │         └── docs/
- │              ├── spec/       # パッケージ固有の仕様書
- │              ├── decisions/  # パッケージ固有の意思決定
- │              └── task/       # パッケージ固有のタスク
+ │              ├── spec/       # Package-specific specifications
+ │              ├── decisions/  # Package-specific decisions
+ │              └── task/       # Package-specific tasks
  │
- └── templates/                 # scaffold 実行時に参照されるテンプレートファイル群
+ └── templates/                 # Template files referenced during scaffolding
       ├── decision.md
       ├── task.md
       └── acceptance.md
 ```
 
-## 3. 条項の記述規則
+## 3. Clause Writing Rules
 
-仕様書（`spec/**/*.md`）の中では、以下のような見出しと属性を使って条項（Clause）を定義します。
+In specification documents (`spec/**/*.md`), clauses are defined using headings and attributes as shown below:
 
 ```markdown
-## K-CORE-DEF-001 単調精緻化
+## K-CORE-DEF-001 Monotonic Refinement
 
-**属性**: `status: active`, `since: 0.1.0`, `kind: 規範`, `impl: v0_1_1`
+**Attributes**: `status: active`, `since: 0.1.0`, `kind: Normative`, `impl: v0_1_1`
 
-(ここから次の `## ` までの内容が条項の本文として扱われます)
+(The content from here to the next `## ` is treated as the body of the clause)
 ```
 
-- **見出し**: 正規表現（デフォルト: `(K-[A-Z0-9]+(?:-[A-Z0-9]+)*)`）に合致する ID が必要です。
-- **属性行**: `status`, `since`, `kind`, `impl` などの属性を含む行が直後に続く必要があります。
-  - `status`: デフォルトでは `active` であれば有効とみなします。
-  - `kind`: デフォルトでは `規範` であれば必須要件（Normative）として扱います。
+- **Heading**: An ID matching the regular expression (default: `(K-[A-Z0-9]+(?:-[A-Z0-9]+)*)`) is required.
+- **Attribute Line**: A line containing attributes like `status`, `since`, `kind`, `impl`, etc., must immediately follow.
+  - `status`: By default, `active` is considered valid.
+  - `kind`: By default, `Normative` is treated as a mandatory requirement.
 
-# ライブラリでは扱わないが 提案するファイル構造と概念
+# Proposed File Structures and Concepts (Not Handled by the Library)
 
-## 1. 提案するファイル・ディレクトリ構造
+## 1. Proposed File and Directory Structure
 <repo_root>/
- ├── packages/          # 一時ファイル用 リポジトリの正規のファイルに混入させないために利用
+ ├── packages/          # For temporary files, used to prevent mixing with the repository's regular files
  └── docs/
-      ├── instruction   # 説明書
-      ├── guide         # 利用者向けの簡易説明
-      ├── source        # いずれにも該当しない資料
-      └── discussions   # decisionsに含まれない 議論記録
+      ├── instruction/   # Instruction manuals
+      ├── guide/         # Quick guides for users
+      ├── source/        # Reference materials that do not fit elsewhere
+      └── discussions/   # Discussion records not included in decisions
