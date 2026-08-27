@@ -9,13 +9,20 @@
 	"bin": {
 		"spec-tools": "./dist/cli.mjs"
 	},
+	"files": [
+		"dist",
+		"templates",
+		"docs"
+	],
 	"scripts": {
+		"prepublishOnly": "pnpm verify",
 		"build": "tsdown",
 		"dev": "tsdown --watch",
 		"test": "vitest run",
 		"typecheck": "tsc --noEmit",
 		"lint": "biome check .",
-		"lint:fix": "biome check --write ."
+		"lint:fix": "biome check --write .",
+		"verify": "pnpm typecheck && pnpm lint && pnpm build && pnpm test"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.5.5",

@@ -90,6 +90,8 @@ async function main() {
 					await runIndexGen(process.cwd(), args[1], values.check || false);
 				} else if (subCommand === 'check') {
 					const { validateDocRefsInRepo } = await import('./commands/doc-ref/refScan.ts');
+					const { loadConfig } = await import('./config.ts');
+					const fullConfig = loadConfig(process.cwd());
 					const { violations } = await validateDocRefsInRepo(process.cwd(), {
 						scanRoots: fullConfig.specCoverage?.scanRoots,
 						historicalPrefixes: fullConfig.docRef?.historicalPrefixes,
