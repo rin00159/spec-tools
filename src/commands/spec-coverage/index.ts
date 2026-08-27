@@ -37,7 +37,7 @@ export async function runSpecCoverage(
 		return conformanceRoots.some((root) => file === root || file.startsWith(`${root}/`));
 	}
 
-	const specRoots = config.specRoots ?? (await discoverSpecRoots(repoRoot));
+	const specRoots = fullConfig.specRoots ?? (await discoverSpecRoots(repoRoot));
 	const { point: currentPhase, overridden } = await resolveCurrentPoint(
 		args,
 		join(repoRoot, 'spec'),

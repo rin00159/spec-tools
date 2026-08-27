@@ -15,6 +15,7 @@ export interface ClauseFormatConfig {
 }
 
 export interface SpecToolsConfig {
+	specRoots?: string[];
 	checkCurrentTask?: {
 		file?: string;
 		maxLines?: number;
@@ -31,7 +32,6 @@ export interface SpecToolsConfig {
 		mirroredFilePairs?: [string, string][];
 	};
 	specCoverage?: {
-		specRoots?: string[];
 		conformanceRoots?: string[];
 		scanRoots?: string[];
 		/** 走査対象とするソースコードの拡張子 (例: ['.ts', '.tsx', '.py', '.go']) */
@@ -60,6 +60,18 @@ export interface SpecToolsConfig {
 	clauseFormat?: ClauseFormatConfig;
 }
 
+const KNOWN_TOPLEVEL_KEYS = new Set([
+	'specRoots',
+	'checkCurrentTask',
+	'checkPlanLayout',
+	'checkMirror',
+	'specCoverage',
+	'docRef',
+	'scaffold',
+	'specIndex',
+	'clauseFormat',
+]);
+
 export function loadConfig(cwd: string = process.cwd()): SpecToolsConfig {
 	let current = cwd;
 	while (true) {
@@ -67,7 +79,21 @@ export function loadConfig(cwd: string = process.cwd()): SpecToolsConfig {
 		if (existsSync(configPath)) {
 			try {
 				const content = readFileSync(configPath, 'utf8');
-				return JSON.parse(content) as SpecToolsConfig;
+				const parsed = JSON.parse(content);
+
+				if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+					console.error(`Invalid config at ${configPath}: Root must be an object`);
+					process.exit(1);
+				}
+
+				for (const key of Object.keys(parsed)) {
+					if (!KNOWN_TOPLEVEL_KEYS.has(key)) {
+						console.error(`Invalid config at ${configPath}: Unknown top-level key \`${key}\``);
+						process.exit(1);
+					}
+				}
+
+				return parsed as SpecToolsConfig;
 			} catch (e) {
 				console.error(
 					`Failed to parse config at ${configPath}: ${e instanceof Error ? e.message : String(e)}`,
@@ -81,5 +107,6 @@ export function loadConfig(cwd: string = process.cwd()): SpecToolsConfig {
 		}
 		current = parent;
 	}
+	// Return empty config if not found. (Note: loadConfig will stop at the first spec-tools.config.json found, without merging parent configs.)
 	return {};
 }

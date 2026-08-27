@@ -18,7 +18,7 @@ export async function runSpecIndex(
 	const INDEX_PATH = join(SPEC_DIR, 'INDEX.md');
 
 	const fullConfig = loadConfig(repoRoot);
-	const specRoots = fullConfig.specCoverage?.specRoots ?? (await discoverSpecRoots(repoRoot));
+	const specRoots = fullConfig.specRoots ?? (await discoverSpecRoots(repoRoot));
 	const clauses = (await parseSpecClauses(specRoots, fullConfig.clauseFormat)).map((clause) => ({
 		...clause,
 		file: relative(repoRoot, clause.file),
