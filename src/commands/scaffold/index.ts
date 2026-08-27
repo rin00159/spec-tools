@@ -55,6 +55,7 @@ function currentPoint(repoRoot: string) {
 async function cmdDecision(
 	repoRoot: string,
 	args: readonly string[],
+	decisionDir: string,
 	packageName?: string,
 ): Promise<void> {
 	const remainingArgs = args;
@@ -67,7 +68,7 @@ async function cmdDecision(
 	}
 	const title = remainingArgs.slice(1).join(' ') || slug;
 
-	let targetDir = join(repoRoot, 'docs/decisions');
+	let targetDir = join(repoRoot, decisionDir);
 	let namespace = 'root';
 
 	if (packageName) {
@@ -81,7 +82,7 @@ async function cmdDecision(
 			const hint = suggestions.length > 0 ? ` (Did you mean: ${suggestions.join(', ')})` : '';
 			fail(`Package not found: ${packageName}${hint}`);
 		}
-		targetDir = join(pkg.dir, 'docs', 'decisions');
+		targetDir = join(pkg.dir, decisionDir);
 		namespace = pkg.name;
 	}
 
@@ -100,6 +101,7 @@ async function cmdDecision(
 async function cmdTask(
 	repoRoot: string,
 	args: readonly string[],
+	taskDir: string,
 	packageName?: string,
 ): Promise<void> {
 	const remainingArgs = args;
@@ -112,7 +114,7 @@ async function cmdTask(
 	}
 	const title = remainingArgs.slice(1).join(' ') || slug;
 
-	let targetDir = join(repoRoot, 'docs/task');
+	let targetDir = join(repoRoot, taskDir);
 	let namespace = 'root';
 
 	if (packageName) {
@@ -126,7 +128,7 @@ async function cmdTask(
 			const hint = suggestions.length > 0 ? ` (Did you mean: ${suggestions.join(', ')})` : '';
 			fail(`Package not found: ${packageName}${hint}`);
 		}
-		targetDir = join(pkg.dir, 'docs', 'task');
+		targetDir = join(pkg.dir, taskDir);
 		namespace = pkg.name;
 	}
 
@@ -174,13 +176,17 @@ export async function runScaffold(
 	args: string[],
 	packageName?: string,
 ): Promise<void> {
+	const fullConfig = (await import('../../config.ts')).loadConfig(repoRoot);
+	const decisionDir = fullConfig.docRef?.decisionDir ?? 'docs/decisions';
+	const taskDir = fullConfig.docRef?.taskDir ?? 'docs/task';
+
 	const [command, ...subArgs] = args;
 	switch (command) {
 		case 'decision':
-			await cmdDecision(repoRoot, subArgs, packageName);
+			await cmdDecision(repoRoot, subArgs, decisionDir, packageName);
 			return;
 		case 'task':
-			await cmdTask(repoRoot, subArgs, packageName);
+			await cmdTask(repoRoot, subArgs, taskDir, packageName);
 			return;
 		case 'acceptance':
 			cmdAcceptance(repoRoot);
