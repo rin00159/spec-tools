@@ -17,6 +17,8 @@ export interface ClauseInfo {
 	readonly line: number;
 	/** 見出しの条項 ID より後ろの部分(例: 「Entity」)。 */
 	readonly title: string;
+	readonly isNormative: boolean;
+	readonly isActive: boolean;
 }
 
 export const DEFAULT_CLAUSE_ID_PATTERN =
@@ -48,6 +50,8 @@ export async function parseSpecClauses(
 		formatConfig?.attrPattern ??
 			`^\\*\\*属性\\*\\*: \`status: (?<status>active|withdrawn)\` / \`since: (?<since>[\\d.]+)\` / \`kind: (?<kind>規範|情報)\` / \`impl: (?<impl>${IMPL_TOKEN_SOURCE})\`\\s*$`,
 	);
+	const normativeKinds = new Set(formatConfig?.normativeKinds ?? ['規範']);
+	const activeStatuses = new Set(formatConfig?.activeStatuses ?? ['active']);
 
 	const files: string[] = [];
 	for (const root of specRoots) {
@@ -72,20 +76,16 @@ export async function parseSpecClauses(
 			let title: string | undefined;
 
 			const headingMatch = lines[i]?.match(headingRe);
-			if (headingMatch) {
-				if (headingMatch.groups) {
-					id = headingMatch.groups.id;
-					title = headingMatch.groups.title;
-				} else {
-					id = headingMatch[1];
-					title = headingMatch[2];
-				}
+			if (!headingMatch) continue;
+
+			if (headingMatch.groups) {
+				id = headingMatch.groups.id;
+				title = headingMatch.groups.title;
 			} else {
-				const legacyMatch = lines[i]?.match(new RegExp(`^##\\s+(${idPattern})\\s+(.+)$`));
-				if (!legacyMatch) continue;
-				id = legacyMatch[1];
-				title = legacyMatch[2];
+				id = headingMatch[1];
+				title = headingMatch[2];
 			}
+
 			if (id === undefined || title === undefined) {
 				continue;
 			}
@@ -93,7 +93,7 @@ export async function parseSpecClauses(
 			const existingFile = seenIds.get(id);
 			if (existingFile !== undefined) {
 				throw new Error(
-					`条項 ID ${id} が複数箇所で見出しになっている(${existingFile} と ${file})。欠番・再利用・振り直しは禁止`,
+					`Clause ID ${id} is used as a heading in multiple places (${existingFile} and ${file}). Clause IDs must be unique.`,
 				);
 			}
 			seenIds.set(id, file);
@@ -104,7 +104,9 @@ export async function parseSpecClauses(
 			}
 			const attrMatch = lines[attrLineIndex]?.match(attrRe);
 			if (!attrMatch) {
-				throw new Error(`${file}: 条項 ${id} の見出し直後に属性行が見つからない`);
+				throw new Error(
+					`${file}: Attributes line not found immediately after heading for clause ${id}`,
+				);
 			}
 
 			let status: string | undefined;
@@ -134,7 +136,7 @@ export async function parseSpecClauses(
 			}
 			const impl = parseImplPoint(implStr);
 			if (impl === undefined) {
-				throw new Error(`${file}: 条項 ${id} の impl \`${implStr}\` が書式違反`);
+				throw new Error(`${file}: Invalid impl format \`${implStr}\` for clause ${id}`);
 			}
 
 			clauses.push({
@@ -146,12 +148,16 @@ export async function parseSpecClauses(
 				file,
 				line: i + 1,
 				title: title.trim(),
+				isNormative: normativeKinds.has(kind),
+				isActive: activeStatuses.has(status),
 			});
 		}
 	}
 
 	if (clauses.length === 0) {
-		throw new Error('走査して得た条項が0件(走査が空振りしたときは失敗する)');
+		throw new Error(
+			'No spec clauses found. Ensure the specRoot directories contain valid markdown files.',
+		);
 	}
 
 	return clauses;

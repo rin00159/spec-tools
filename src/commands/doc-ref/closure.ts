@@ -98,7 +98,7 @@ export async function discoverPackages(repoRoot: string): Promise<ReadonlyArray<
 			const newHasDocs = await hasDocs(real);
 			if (existingHasDocs && newHasDocs) {
 				throw new Error(
-					`同じ package 名 "${name}" を持つ異なるパス (${existingDir} と ${real}) が文書ディレクトリを持っている`,
+					`Conflicting paths for package name "${name}" (${existingDir} and ${real}) both have doc directories.`,
 				);
 			}
 			if (newHasDocs && !existingHasDocs) {

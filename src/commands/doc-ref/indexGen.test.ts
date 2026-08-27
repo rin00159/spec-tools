@@ -62,7 +62,7 @@ describe('planIndexes', () => {
 		expect(root?.content).toContain('051');
 		// 根の stub は実体側で数える。根の索引には出ない。
 		expect(root?.content).not.toContain('046');
-		expect(root?.content).toContain('手で編集しない');
+		expect(root?.content).toContain('Do not edit manually');
 	});
 
 	it('実体が0件になった索引は削除の対象になる', async () => {

@@ -19,11 +19,9 @@ export function readPhaseOverride(argv: readonly string[]): string | undefined {
 		return undefined;
 	}
 	if (indices.length > 1) {
-		const given = indices.map((i) => argv[i + 1] ?? '(値なし)').join(' / ');
+		const given = indices.map((i) => argv[i + 1] ?? '(no value)').join(' / ');
 		throw new Error(
-			`--phase が ${indices.length} 回指定されている(${given})。` +
-				'現在地の上書きは1回だけ許される(00-conventions.md「現在地の在処」)。' +
-				'pnpm 経由で `pnpm spec:coverage --phase <値>` と打つと script 側の指定と二重になる',
+			`--phase flag provided ${indices.length} times (${given}). Only one --phase override is allowed.`,
 		);
 	}
 	const index = indices[0];
@@ -32,7 +30,7 @@ export function readPhaseOverride(argv: readonly string[]): string | undefined {
 	}
 	const value = argv[index + 1];
 	if (value === undefined) {
-		throw new Error('--phase に値が無い(例: --phase v0_1_16)');
+		throw new Error('Missing value for --phase flag (e.g. --phase v0_1_16)');
 	}
 	return value;
 }
@@ -45,13 +43,15 @@ export async function readPhaseFile(specDir: string): Promise<ImplPoint> {
 		raw = await readFile(path, 'utf8');
 	} catch {
 		throw new Error(
-			`${path} が読めない。現在地は ${path} に置く(00-conventions.md「現在地の在処」)`,
+			`Failed to read ${path}. The current implementation phase must be defined in this file.`,
 		);
 	}
 	const token = raw.trim();
 	const point = parseImplPoint(token);
 	if (point === undefined) {
-		throw new Error(`${path} の \`${token}\` が書式違反(v<major>_<minor>_<phase>。例: v0_1_16)`);
+		throw new Error(
+			`Invalid format in ${path}: \`${token}\`. Must be v<major>_<minor>_<phase> (e.g. v0_1_16)`,
+		);
 	}
 	return point;
 }
@@ -66,7 +66,9 @@ export async function resolveCurrentPoint(
 	}
 	const point = parseImplPoint(override);
 	if (point === undefined) {
-		throw new Error(`--phase の \`${override}\` が書式違反(v<major>_<minor>_<phase>。例: v0_1_16)`);
+		throw new Error(
+			`Invalid format for --phase override: \`${override}\`. Must be v<major>_<minor>_<phase> (e.g. v0_1_16)`,
+		);
 	}
 	return { point, overridden: true };
 }

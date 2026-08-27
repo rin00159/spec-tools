@@ -185,7 +185,7 @@ export async function validateDocRefsInRepo(
 	];
 
 	if (markdownFiles.length === 0) {
-		throw new Error('走査対象の markdown ファイルが0件です(空振り防止)');
+		throw new Error('No markdown files found to scan.');
 	}
 
 	let totalRefs = 0;
@@ -224,7 +224,7 @@ export async function validateDocRefsInRepo(
 				const found = rootFilesForType.some((f) => f.startsWith(`${numStr}-`) && f.endsWith('.md'));
 				if (!found) {
 					violations.push(
-						`${relFile}:${refItem.line}: 存在しない ${refItem.type} 参照 ${subDir}/${numStr}`,
+						`${relFile}:${refItem.line}: Missing ${refItem.type} reference ${subDir}/${numStr}`,
 					);
 				}
 			} else {
@@ -247,7 +247,7 @@ export async function validateDocRefsInRepo(
 				}
 				if (!resolved) {
 					violations.push(
-						`${relFile}:${refItem.line}: 存在しない名前空間付き参照 ${refItem.ref} (${lastErr instanceof Error ? lastErr.message : String(lastErr)})`,
+						`${relFile}:${refItem.line}: Missing namespaced reference ${refItem.ref} (${lastErr instanceof Error ? lastErr.message : String(lastErr)})`,
 					);
 				}
 			}
@@ -255,7 +255,7 @@ export async function validateDocRefsInRepo(
 	}
 
 	if (totalRefs === 0) {
-		throw new Error('走査された参照が0件です(空振り防止)');
+		throw new Error('No references found to validate.');
 	}
 
 	return {

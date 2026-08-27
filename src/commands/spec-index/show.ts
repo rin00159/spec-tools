@@ -15,8 +15,9 @@ export async function runSpecShow(repoRoot: string = process.cwd(), ids: string[
 		return;
 	}
 
-	const specRoots = await discoverSpecRoots(repoRoot);
-	const clauses = await parseSpecClauses(specRoots);
+	const fullConfig = (await import('../../config.ts')).loadConfig(repoRoot);
+	const specRoots = fullConfig.specCoverage?.specRoots ?? (await discoverSpecRoots(repoRoot));
+	const clauses = await parseSpecClauses(specRoots, fullConfig.clauseFormat);
 	const byId = new Map(clauses.map((c) => [c.id, c]));
 	const fileCache = new Map<string, string[]>();
 	let missing = false;

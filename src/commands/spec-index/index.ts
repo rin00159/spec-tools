@@ -23,7 +23,15 @@ export async function runSpecIndex(
 		...clause,
 		file: relative(repoRoot, clause.file),
 	}));
-	const expected = renderIndex(clauses);
+	let customHeader: string | undefined = fullConfig.specIndex?.header;
+	if (customHeader?.endsWith('.md')) {
+		try {
+			customHeader = await readFile(join(repoRoot, customHeader), 'utf8');
+		} catch {
+			// fallback to using it as literal string if not a file
+		}
+	}
+	const expected = renderIndex(clauses, customHeader);
 
 	if (!checkOnly) {
 		await writeFile(INDEX_PATH, expected, 'utf8');

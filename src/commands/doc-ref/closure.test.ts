@@ -96,7 +96,7 @@ describe('discoverPackages', () => {
 			'utf8',
 		);
 
-		await expect(discoverPackages(repo)).rejects.toThrow(/同じ package 名/);
+		await expect(discoverPackages(repo)).rejects.toThrow(/Conflicting paths for package name/);
 	});
 
 	it('文書を持たない第三者 package で異なる realpath が同じ name を名乗っても throw しない', async () => {

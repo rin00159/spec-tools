@@ -42,7 +42,7 @@ const HEADER = [
 ] as const;
 
 /** 索引の本文を組み立てる。ファイルごとに分け、条項は出現順のまま並べる。 */
-export function renderIndex(clauses: readonly ClauseInfo[]): string {
+export function renderIndex(clauses: readonly ClauseInfo[], customHeader?: string): string {
 	const byFile = new Map<string, ClauseInfo[]>();
 	for (const clause of clauses) {
 		const list = byFile.get(clause.file);
@@ -69,8 +69,12 @@ export function renderIndex(clauses: readonly ClauseInfo[]): string {
 	}
 
 	const total = clauses.length;
-	const withdrawn = clauses.filter((c) => c.status === 'withdrawn').length;
-	return [...HEADER, `条項 ${total}件(うち withdrawn ${withdrawn}件)。`, '', ...sections].join(
-		'\n',
-	);
+	const withdrawn = clauses.filter((c) => !c.isActive).length;
+	const headerStr = customHeader ?? HEADER.join('\n');
+	return [
+		headerStr,
+		`条項 ${total}件(うち withdrawn/inactive ${withdrawn}件)。`,
+		'',
+		...sections,
+	].join('\n');
 }

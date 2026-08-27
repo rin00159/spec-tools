@@ -8,6 +8,10 @@ export interface ClauseFormatConfig {
 	headingPattern?: string;
 	/** Regex string with named capture groups `status`, `since`, `kind`, and `impl` */
 	attrPattern?: string;
+	/** Values of `kind` that are considered normative */
+	normativeKinds?: string[];
+	/** Values of `status` that are considered active */
+	activeStatuses?: string[];
 }
 
 export interface SpecToolsConfig {
@@ -42,6 +46,16 @@ export interface SpecToolsConfig {
 		taskDir?: string;
 		namespacePattern?: string;
 		historicalPrefixes?: string[];
+	};
+	scaffold?: {
+		/** Directory containing custom markdown templates (decision.md, task.md, acceptance.md) */
+		templateDir?: string;
+		/** The starting number for new decisions/tasks (defaults to 200 to freeze 1-199 for legacy) */
+		startNumber?: number;
+	};
+	specIndex?: {
+		/** Custom header text or file path for the generated INDEX.md */
+		header?: string;
 	};
 	clauseFormat?: ClauseFormatConfig;
 }

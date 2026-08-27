@@ -40,7 +40,7 @@ export async function discoverSpecRoots(repoRoot: string): Promise<ReadonlyArray
 	}
 
 	if (roots.length === 0) {
-		throw new Error('条項の走査ルートが0件(00-conventions.md「走査が空振りしたときは失敗する」)');
+		throw new Error('No spec root directories found.');
 	}
 
 	return roots.sort();

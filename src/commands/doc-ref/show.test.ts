@@ -27,15 +27,13 @@ describe('resolveDocRef', () => {
 
 		const resolved = await resolveDocRef(repo, 'decision', '105');
 		expect(resolved.content).toContain('# 105 FCH の生成物の形');
-		expect(resolved.reference).toBe('kata2:105');
+		expect(resolved.reference).toBe('root:105');
 	});
 
 	it('200 以降の bare 番号は error にする', async () => {
 		const repo = await createFixtureRepo();
 		await writeFile(join(repo, 'package.json'), JSON.stringify({ name: 'kata2' }), 'utf8');
-		await expect(resolveDocRef(repo, 'decision', '200')).rejects.toThrow(
-			/200 以降の番号は名前空間付きで指定すること/,
-		);
+		await expect(resolveDocRef(repo, 'decision', '200')).rejects.toThrow(/must be namespaced/);
 	});
 
 	it('名前空間付き参照 (@kata2/pkg:200) を解決する', async () => {

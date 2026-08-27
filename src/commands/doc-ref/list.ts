@@ -120,25 +120,23 @@ function render(
 	});
 
 	const lines: string[] = [
-		`# ${docType} 一覧(依存閉包の走査。実体の在り処ごと。計 ${entries.length}件)`,
+		`# ${docType} list (Closure scan, grouped by location, ${entries.length} items total)`,
 		'',
 	];
 	for (const owner of owners) {
 		const list = (byOwner.get(owner) ?? []).sort((a, b) => a.number.localeCompare(b.number));
-		lines.push(`## ${owner}(${list.length}件)`);
+		lines.push(`## ${owner} (${list.length} items)`);
 		const width = Math.max(...list.map((e) => e.reference.length));
 		for (const e of list) {
 			lines.push(`  ${e.reference.padEnd(width)}  ${e.title}`);
-			lines.push(`  ${' '.repeat(width)}  状態: ${e.state}`);
+			lines.push(`  ${' '.repeat(width)}  State: ${e.state}`);
 			lines.push(`  ${' '.repeat(width)}  ${relative(repoRoot, e.filePath)}`);
 		}
 		lines.push('');
 	}
 	lines.push(
-		`本文を読むのは \`pnpm ${docType}:show <参照>\`。`,
-		docType === 'task'
-			? `着手順の判断は ${taskDir}/README.md の表が持つ(docs/decisions/109 決定8)。`
-			: '',
+		`Read the content via \`pnpm ${docType}:show <reference>\`.`,
+		docType === 'task' ? `Task priority/order is managed in ${taskDir}/README.md.` : '',
 	);
 	return lines.filter((l) => l !== undefined).join('\n');
 }

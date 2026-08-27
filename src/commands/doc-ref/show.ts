@@ -82,7 +82,7 @@ export async function resolveDocRef(
 		const num = Number(ref);
 		if (num >= 200) {
 			throw new Error(
-				`200 以降の番号は名前空間付きで指定すること (例: @kata2/core:${ref} や kata2:${ref})`,
+				`References >= 200 must be namespaced (e.g. @myorg/core:${ref} or root:${ref})`,
 			);
 		}
 
@@ -91,8 +91,8 @@ export async function resolveDocRef(
 		if (!filePath) {
 			const existing = await listNumberedFiles(rootDir);
 			const suggestions = suggestClosest(ref, existing);
-			const hint = suggestions.length > 0 ? ` (近い候補: ${suggestions.join(', ')})` : '';
-			throw new Error(`${docType} が見つからない: ${ref}${hint}`);
+			const hint = suggestions.length > 0 ? ` (Did you mean: ${suggestions.join(', ')})` : '';
+			throw new Error(`${docType} not found: ${ref}${hint}`);
 		}
 
 		const rawContent = await readFile(filePath, 'utf8');
@@ -112,7 +112,7 @@ export async function resolveDocRef(
 		}
 
 		return {
-			reference: `kata2:${String(num).padStart(3, '0')}`,
+			reference: `root:${String(num).padStart(3, '0')}`,
 			filePath,
 			content: rawContent,
 		};
@@ -126,15 +126,15 @@ export async function resolveDocRef(
 		const num = Number(numStr);
 
 		if (Number.isNaN(num)) {
-			throw new Error(`無効な参照形式: ${ref} (例: 105 または @kata2/core:200)`);
+			throw new Error(`Invalid reference format: ${ref} (expected e.g. 105 or @myorg/core:200)`);
 		}
 
 		const pkgEntry = pkgs.find((p) => p.name === pkgName);
 		if (!pkgEntry) {
 			const pkgNames = pkgs.map((p) => p.name);
 			const suggestions = suggestClosest(pkgName, pkgNames);
-			const hint = suggestions.length > 0 ? ` (近い package: ${suggestions.join(', ')})` : '';
-			throw new Error(`package が見つからない: ${pkgName}${hint}`);
+			const hint = suggestions.length > 0 ? ` (Did you mean: ${suggestions.join(', ')})` : '';
+			throw new Error(`Package not found: ${pkgName}${hint}`);
 		}
 
 		const docDir = join(pkgEntry.dir, subDir);
@@ -143,8 +143,8 @@ export async function resolveDocRef(
 			const existing = await listNumberedFiles(docDir);
 			const suggestions = suggestClosest(numStr, existing);
 			const hint =
-				suggestions.length > 0 ? ` (この package 内の候補: ${suggestions.join(', ')})` : '';
-			throw new Error(`${docType} が見つからない: ${ref}${hint}`);
+				suggestions.length > 0 ? ` (Suggestions in this package: ${suggestions.join(', ')})` : '';
+			throw new Error(`${docType} not found: ${ref}${hint}`);
 		}
 
 		const content = await readFile(filePath, 'utf8');
@@ -155,7 +155,7 @@ export async function resolveDocRef(
 		};
 	}
 
-	throw new Error(`無効な参照形式: ${ref} (例: 105 または @kata2/core:200)`);
+	throw new Error(`Invalid reference format: ${ref} (expected e.g. 105 or @myorg/core:200)`);
 }
 
 export async function runShow(

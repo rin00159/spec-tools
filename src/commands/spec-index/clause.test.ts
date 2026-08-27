@@ -28,6 +28,8 @@ function clause(overrides: Partial<ClauseInfo>): ClauseInfo {
 		file: 'packages/core/docs/spec/10-core-model.md',
 		line: 3,
 		title: '単調精緻化',
+		isNormative: true,
+		isActive: true,
 		...overrides,
 	};
 }
@@ -79,7 +81,10 @@ describe('renderIndex', () => {
 
 	it('withdrawn の件数を数える', () => {
 		expect(
-			renderIndex([clause({}), clause({ id: 'K-CORE-DEF-002', status: 'withdrawn' })]),
-		).toContain('withdrawn 1件');
+			renderIndex([
+				clause({}),
+				clause({ id: 'K-CORE-DEF-002', status: 'withdrawn', isActive: false }),
+			]),
+		).toContain('withdrawn/inactive 1件');
 	});
 });

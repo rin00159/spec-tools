@@ -69,18 +69,16 @@ describe('discoverSpecRoots (T1〜T4)', () => {
 
 	it('T4: ルートを1つも持たない fixture は throw する(空振り防止)', async () => {
 		const repo = await createFixtureRepo();
-		await expect(discoverSpecRoots(repo)).rejects.toThrow(/0件/);
+		await expect(discoverSpecRoots(repo)).rejects.toThrow(/No spec root directories found/);
 	});
 });
 
 describe('parseSpecClauses (T5〜T7)', () => {
 	it('T5: ルートはあるが条項が0件の fixture は throw する', async () => {
-		const repo = await createFixtureRepo();
-		const rootSpec = join(repo, 'spec');
-		await mkdir(rootSpec, { recursive: true });
+		const rootSpec = await mkdtemp(join(tmpdir(), 'spec-tools-'));
 		await writeFile(join(rootSpec, 'README.md'), '# no clauses here', 'utf8');
 
-		await expect(parseSpecClauses([rootSpec])).rejects.toThrow(/0件/);
+		await expect(parseSpecClauses([rootSpec])).rejects.toThrow(/No spec clauses found/);
 	});
 
 	it('T6: 別ルートの2ファイルが同じ条項 ID を見出しにする fixture は throw し、両方のファイルパスがメッセージに出る', async () => {

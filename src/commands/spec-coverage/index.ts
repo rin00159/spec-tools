@@ -77,14 +77,14 @@ export async function runSpecCoverage(
 
 	const uncoveredClauses = clauses.filter(
 		(clause) =>
-			clause.kind === '規範' &&
-			clause.status === 'active' &&
+			clause.isNormative &&
+			clause.isActive &&
 			compareImplPoint(clause.impl, currentPhase) <= 0 &&
 			!evidencedIds.has(clause.id),
 	);
 
 	const aheadClauses = clauses.filter(
-		(clause) => clause.status === 'active' && compareImplPoint(clause.impl, currentPhase) > 0,
+		(clause) => clause.isActive && compareImplPoint(clause.impl, currentPhase) > 0,
 	);
 
 	report({

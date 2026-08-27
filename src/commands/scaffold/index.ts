@@ -52,11 +52,31 @@ function currentPoint(repoRoot: string) {
 	return point;
 }
 
+async function resolveTemplate(
+	repoRoot: string,
+	templateDir: string | undefined,
+	templateName: string,
+	fallbackGenerator: () => string,
+): Promise<string> {
+	if (templateDir) {
+		const customPath = join(repoRoot, templateDir, templateName);
+		if (existsSync(customPath)) {
+			return readFileSync(customPath, 'utf8');
+		}
+	}
+	const defaultPath = join(__dirname, '../../../templates', templateName);
+	if (existsSync(defaultPath)) {
+		return readFileSync(defaultPath, 'utf8');
+	}
+	return fallbackGenerator();
+}
+
 async function cmdDecision(
 	repoRoot: string,
 	args: readonly string[],
 	decisionDir: string,
 	packageName?: string,
+	scaffoldConfig?: { templateDir?: string; startNumber?: number },
 ): Promise<void> {
 	const remainingArgs = args;
 	const slug = remainingArgs[0];
@@ -90,10 +110,19 @@ async function cmdDecision(
 		mkdirSync(targetDir, { recursive: true });
 	}
 
-	const numberValue = nextNumber(readdirSync(targetDir));
+	const numberValue = nextNumber(readdirSync(targetDir), scaffoldConfig?.startNumber);
 	const fileName = numberedFileName(numberValue, slug);
 	const filePath = join(targetDir, fileName);
-	writeNew(filePath, decisionTemplate(numberValue, title, today()));
+
+	const template = await resolveTemplate(repoRoot, scaffoldConfig?.templateDir, 'decision.md', () =>
+		decisionTemplate(numberValue, title, today()),
+	);
+	const content = template
+		.replace(/\{\{number\}\}/g, String(numberValue).padStart(3, '0'))
+		.replace(/\{\{title\}\}/g, title)
+		.replace(/\{\{date\}\}/g, today());
+
+	writeNew(filePath, content);
 	const relPath = relative(repoRoot, filePath);
 	console.log(`Created ${relPath} (${namespace}:${numberValue}).`);
 }
@@ -103,6 +132,7 @@ async function cmdTask(
 	args: readonly string[],
 	taskDir: string,
 	packageName?: string,
+	scaffoldConfig?: { templateDir?: string; startNumber?: number },
 ): Promise<void> {
 	const remainingArgs = args;
 	const slug = remainingArgs[0];
@@ -136,21 +166,47 @@ async function cmdTask(
 		mkdirSync(targetDir, { recursive: true });
 	}
 
-	const numberValue = nextNumber(readdirSync(targetDir));
+	const numberValue = nextNumber(readdirSync(targetDir), scaffoldConfig?.startNumber);
 	const fileName = numberedFileName(numberValue, slug);
 	const filePath = join(targetDir, fileName);
-	writeNew(filePath, taskTemplate(numberValue, title, today()));
+
+	const template = await resolveTemplate(repoRoot, scaffoldConfig?.templateDir, 'task.md', () =>
+		taskTemplate(numberValue, title, today()),
+	);
+	const content = template
+		.replace(/\{\{number\}\}/g, String(numberValue).padStart(3, '0'))
+		.replace(/\{\{title\}\}/g, title)
+		.replace(/\{\{date\}\}/g, today());
+
+	writeNew(filePath, content);
 	const relPath = relative(repoRoot, filePath);
 	console.log(`Created ${relPath} (${namespace}:${numberValue}).`);
 }
 
-function cmdAcceptance(repoRoot: string): void {
+async function cmdAcceptance(
+	repoRoot: string,
+	scaffoldConfig?: { templateDir?: string; startNumber?: number },
+): Promise<void> {
 	const point = currentPoint(repoRoot);
 	const relPath = acceptanceFileFor(point);
 	const path = join(repoRoot, relPath);
-	writeNew(path, acceptanceTemplate(point, today()));
-	console.log(`Created ${relPath} (from spec/PHASE).`);
 	const planFile = planFileFor(point);
+
+	const template = await resolveTemplate(
+		repoRoot,
+		scaffoldConfig?.templateDir,
+		'acceptance.md',
+		() => acceptanceTemplate(point, today()),
+	);
+	const content = template
+		.replace(/\{\{major\}\}/g, String(point.major))
+		.replace(/\{\{minor\}\}/g, String(point.minor))
+		.replace(/\{\{phase\}\}/g, String(point.phase))
+		.replace(/\{\{date\}\}/g, today())
+		.replace(/\{\{planFile\}\}/g, planFile);
+
+	writeNew(path, content);
+	console.log(`Created ${relPath} (from spec/PHASE).`);
 	if (!existsSync(join(repoRoot, planFile))) {
 		console.log(`  ⚠ Plan original ${planFile} not found.`);
 	}
@@ -183,13 +239,13 @@ export async function runScaffold(
 	const [command, ...subArgs] = args;
 	switch (command) {
 		case 'decision':
-			await cmdDecision(repoRoot, subArgs, decisionDir, packageName);
+			await cmdDecision(repoRoot, subArgs, decisionDir, packageName, fullConfig.scaffold);
 			return;
 		case 'task':
-			await cmdTask(repoRoot, subArgs, taskDir, packageName);
+			await cmdTask(repoRoot, subArgs, taskDir, packageName, fullConfig.scaffold);
 			return;
 		case 'acceptance':
-			cmdAcceptance(repoRoot);
+			await cmdAcceptance(repoRoot, fullConfig.scaffold);
 			return;
 		case 'phase':
 			cmdPhase(repoRoot, subArgs);

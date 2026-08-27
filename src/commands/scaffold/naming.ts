@@ -15,7 +15,7 @@ export const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
  * v1 で番号重複の実績あり)。`docs/decisions/` と `docs/task/` の両方で使う。
  * native は 200 から採番し、legacy(001〜110 / 001〜063)を凍結する(docs/decisions/109 決定4-c)。
  */
-export function nextNumber(fileNames: readonly string[]): number {
+export function nextNumber(fileNames: readonly string[], startNumber: number = 200): number {
 	let max = 0;
 	for (const name of fileNames) {
 		const match = name.match(NUMBERED_FILE_RE);
@@ -24,7 +24,7 @@ export function nextNumber(fileNames: readonly string[]): number {
 		}
 		max = Math.max(max, Number(match[1]));
 	}
-	return Math.max(199, max) + 1;
+	return Math.max(startNumber - 1, max) + 1;
 }
 
 export function numberedFileName(numberValue: number, slug: string): string {

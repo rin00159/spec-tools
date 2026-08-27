@@ -54,21 +54,20 @@ task: docs/task/018
 
 describe('validateDocRefsInRepo (fixture)', () => {
 	it('走査対象ファイルが0件の場合は空振りとして throw する', async () => {
-		const repo = await createFixtureRepo();
+		const repo = await mkdtemp(join(tmpdir(), 'spec-tools-'));
 		await expect(
 			validateDocRefsInRepo(repo, { scanRoots: ['docs'], rootFiles: [] }),
-		).rejects.toThrow(/走査対象の markdown ファイルが0件/);
+		).rejects.toThrow(/No markdown files found/);
 	});
 
 	it('走査された参照が0件の場合は空振りとして throw する', async () => {
-		const repo = await createFixtureRepo();
-		const docsDir = join(repo, 'docs');
-		await mkdir(docsDir, { recursive: true });
-		await writeFile(join(docsDir, 'test.md'), '# No References here\n', 'utf8');
-
+		const repo = await mkdtemp(join(tmpdir(), 'spec-tools-'));
+		const docs = join(repo, 'docs');
+		await mkdir(docs);
+		await writeFile(join(docs, 'empty.md'), '# empty\n', 'utf8');
 		await expect(
 			validateDocRefsInRepo(repo, { scanRoots: ['docs'], rootFiles: [] }),
-		).rejects.toThrow(/走査された参照が0件/);
+		).rejects.toThrow(/No references found/);
 	});
 
 	it('存在しない legacy 参照と namespaced 参照を violation として報告する', async () => {
