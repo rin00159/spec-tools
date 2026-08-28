@@ -8,10 +8,6 @@ Derived from [k4t4-framework](https://github.com/k4ta-framework) — works as a 
 
 `spec-tools` provides a set of commands to keep your spec clauses, implementation, and project documentation in sync. It is designed to work alongside AI coding assistants by making project state machine-verifiable rather than relying on prose-based conventions.
 
-## Requirements
-
-- Node.js >= 22
-
 ## Installation
 
 ```sh

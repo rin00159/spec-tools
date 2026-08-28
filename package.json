@@ -1,6 +1,6 @@
 {
 	"name": "spec-tools",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "Zero-dependency CLI for spec-driven project management and AI collaboration",
 	"keywords": [
 		"spec",
@@ -42,7 +42,8 @@
 		"typecheck": "tsc --noEmit",
 		"lint": "biome check .",
 		"lint:fix": "biome check --write .",
-		"verify": "pnpm typecheck && pnpm lint && pnpm build && pnpm test"
+		"verify": "pnpm typecheck && pnpm lint && pnpm build && pnpm test",
+		"prepare": "pnpm build"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.5.5",
@@ -53,6 +54,10 @@
 	},
 	"author": "Rintaro Osumi <0sumirintaro@gmail.com>",
 	"license": "MIT",
+	"homepage": "https://github.com/rin00159/spec-tools#readme",
+	"bugs": {
+		"url": "https://github.com/rin00159/spec-tools/issues"
+	},
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/rin00159/spec-tools.git"

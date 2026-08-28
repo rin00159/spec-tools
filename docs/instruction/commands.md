@@ -15,7 +15,7 @@ Answers three questions:
 spec-tools spec-coverage [--phase <override_phase>]
 ```
 
-`--phase` temporarily overrides the current position read from `spec/PHASE`. Providing it more than once is an error. See [spec/00-conventions.md](../../spec/00-conventions.md) for the full traceability rules.
+`--phase` temporarily overrides the current position read from `spec/PHASE`. Providing it more than once is an error. See [spec/00-conventions.md](https://github.com/rin00159/spec-tools/blob/main/spec/00-conventions.md) for the full traceability rules.
 
 ## `spec-show`
 Prints the full text of a single spec clause by its ID, without loading the entire spec file.
