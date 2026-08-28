@@ -2,22 +2,14 @@
 // Run: `node --experimental-strip-types tools/spec-coverage/src/index.ts`
 // The current point is spec/PHASE. Temporary override is `--phase v0_2_1` (multiple specifications cause an error).
 
-import { join, relative } from "node:path";
-import { loadConfig } from "../../config.ts";
-import { type CodeClauseRef, scanSourceCodeRefs } from "./codeScan.ts";
-import { resolveCurrentPoint } from "./currentPoint.ts";
-import {
-	compareImplPoint,
-	formatImplPoint,
-	type ImplPoint,
-} from "./implPoint.ts";
-import {
-	type ClauseInfo,
-	DEFAULT_CLAUSE_ID_PATTERN,
-	parseSpecClauses,
-} from "./specClauses.ts";
-import { discoverSpecRoots } from "./specRoots.ts";
-import { scanTestNames, type TestNameEntry } from "./testScan.ts";
+import { join, relative } from 'node:path';
+import { loadConfig } from '../../config.ts';
+import { type CodeClauseRef, scanSourceCodeRefs } from './codeScan.ts';
+import { resolveCurrentPoint } from './currentPoint.ts';
+import { compareImplPoint, formatImplPoint, type ImplPoint } from './implPoint.ts';
+import { type ClauseInfo, DEFAULT_CLAUSE_ID_PATTERN, parseSpecClauses } from './specClauses.ts';
+import { discoverSpecRoots } from './specRoots.ts';
+import { scanTestNames, type TestNameEntry } from './testScan.ts';
 
 export async function runSpecCoverage(
 	repoRoot: string = process.cwd(),
@@ -25,52 +17,37 @@ export async function runSpecCoverage(
 ): Promise<void> {
 	const fullConfig = loadConfig(repoRoot);
 	const config = fullConfig.specCoverage || {};
-	const conformanceRoots = config.conformanceRoots || ["packages", "examples"];
-	const scanRoots = config.scanRoots || [
-		"packages",
-		"tools",
-		"examples",
-		"apps",
-	];
+	const conformanceRoots = config.conformanceRoots || ['packages', 'examples'];
+	const scanRoots = config.scanRoots || ['packages', 'tools', 'examples', 'apps'];
 	const sourceExtensions = config.sourceExtensions || [
-		".ts",
-		".tsx",
-		".js",
-		".mjs",
-		".cjs",
-		".json",
+		'.ts',
+		'.tsx',
+		'.js',
+		'.mjs',
+		'.cjs',
+		'.json',
 	];
-	const testSuffixes = config.testSuffixes || [".test.ts"];
+	const testSuffixes = config.testSuffixes || ['.test.ts'];
 	const testNamePatterns = config.testNamePatterns || [
-		"\\b(?:it|test)(?:\\.\\w+)?\\(\\s*(?:\"((?:[^\"\\\\]|\\\\.)*)\"|'((?:[^'\\\\]|\\\\.)*)')",
+		'\\b(?:it|test)(?:\\.\\w+)?\\(\\s*(?:"((?:[^"\\\\]|\\\\.)*)"|\'((?:[^\'\\\\]|\\\\.)*)\')',
 	];
-	const idPattern =
-		fullConfig.clauseFormat?.idPattern ?? DEFAULT_CLAUSE_ID_PATTERN;
+	const idPattern = fullConfig.clauseFormat?.idPattern ?? DEFAULT_CLAUSE_ID_PATTERN;
 
 	function requiresLeadingId(file: string): boolean {
-		return conformanceRoots.some(
-			(root) => file === root || file.startsWith(`${root}/`),
-		);
+		return conformanceRoots.some((root) => file === root || file.startsWith(`${root}/`));
 	}
 
 	const specRoots = fullConfig.specRoots ?? (await discoverSpecRoots(repoRoot));
 	const { point: currentPhase, overridden } = await resolveCurrentPoint(
 		args,
-		join(repoRoot, "spec"),
+		join(repoRoot, 'spec'),
 	);
 
-	const clauses = (
-		await parseSpecClauses(specRoots, fullConfig.clauseFormat)
-	).map((clause) => ({
+	const clauses = (await parseSpecClauses(specRoots, fullConfig.clauseFormat)).map((clause) => ({
 		...clause,
 		file: relative(repoRoot, clause.file),
 	}));
-	const testEntries = await scanTestNames(
-		scanRoots,
-		idPattern,
-		testSuffixes,
-		testNamePatterns,
-	);
+	const testEntries = await scanTestNames(scanRoots, idPattern, testSuffixes, testNamePatterns);
 	const knownIds = new Set(clauses.map((c) => c.id));
 
 	const idLessTests = testEntries.filter(
@@ -83,15 +60,9 @@ export async function runSpecCoverage(
 			.map((id) => ({ file: entry.file, name: entry.name, id })),
 	);
 
-	const codeScanResult = await scanSourceCodeRefs(
-		scanRoots,
-		knownIds,
-		idPattern,
-		sourceExtensions,
-	);
+	const codeScanResult = await scanSourceCodeRefs(scanRoots, knownIds, idPattern, sourceExtensions);
 	const unknownRefsInSource = codeScanResult.unknownRefs.filter(
-		(ref) =>
-			!unknownRefsInTests.some((t) => t.file === ref.file && t.id === ref.id),
+		(ref) => !unknownRefsInTests.some((t) => t.file === ref.file && t.id === ref.id),
 	);
 
 	const evidencedIds = new Set<string>();
@@ -113,8 +84,7 @@ export async function runSpecCoverage(
 	);
 
 	const aheadClauses = clauses.filter(
-		(clause) =>
-			clause.isActive && compareImplPoint(clause.impl, currentPhase) > 0,
+		(clause) => clause.isActive && compareImplPoint(clause.impl, currentPhase) > 0,
 	);
 
 	report({
@@ -151,7 +121,7 @@ function report(input: {
 	readonly todoRefs: readonly CodeClauseRef[];
 }): void {
 	const current = formatImplPoint(input.currentPhase);
-	const source = input.overridden ? "--phase flag" : "spec/PHASE";
+	const source = input.overridden ? '--phase flag' : 'spec/PHASE';
 	console.log(`spec:coverage (${current} reached / source: ${source})`);
 
 	if (input.aheadClauses.length > 0) {
@@ -174,9 +144,7 @@ function report(input: {
 		}
 	}
 
-	console.log(
-		`\nQuestion 1: Tests without clause IDs — ${input.idLessTests.length} items`,
-	);
+	console.log(`\nQuestion 1: Tests without clause IDs — ${input.idLessTests.length} items`);
 	for (const entry of input.idLessTests) {
 		console.log(`  - ${entry.file}: "${entry.name}"`);
 	}
@@ -185,24 +153,15 @@ function report(input: {
 		`\nQuestion 2: Clauses with no implementation or test (impl<=${current}) — ${input.uncoveredClauses.length} items`,
 	);
 	for (const clause of input.uncoveredClauses) {
-		console.log(
-			`  - ${clause.id} (${clause.file}, impl: ${formatImplPoint(clause.impl)})`,
-		);
+		console.log(`  - ${clause.id} (${clause.file}, impl: ${formatImplPoint(clause.impl)})`);
 	}
 
-	const totalUnknown =
-		input.unknownRefsInTests.length + input.unknownRefsInSource.length;
-	console.log(
-		`\nQuestion 3: References to non-existent clause IDs — ${totalUnknown} items`,
-	);
+	const totalUnknown = input.unknownRefsInTests.length + input.unknownRefsInSource.length;
+	console.log(`\nQuestion 3: References to non-existent clause IDs — ${totalUnknown} items`);
 	for (const ref of input.unknownRefsInTests) {
-		console.log(
-			`  - Test "${ref.name}" (${ref.file}) references unknown ${ref.id}`,
-		);
+		console.log(`  - Test "${ref.name}" (${ref.file}) references unknown ${ref.id}`);
 	}
 	for (const ref of input.unknownRefsInSource) {
-		console.log(
-			`  - Source ${ref.file}:${ref.line} references unknown ${ref.id}`,
-		);
+		console.log(`  - Source ${ref.file}:${ref.line} references unknown ${ref.id}`);
 	}
 }

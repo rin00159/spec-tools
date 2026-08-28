@@ -1,13 +1,9 @@
 // Parse the clause attribute lines (00-conventions.md) of spec/*.md.
 
-import { readdir, readFile } from "node:fs/promises";
-import { join } from "node:path";
-import type { ClauseFormatConfig } from "../../config.ts";
-import {
-	IMPL_TOKEN_SOURCE,
-	type ImplPoint,
-	parseImplPoint,
-} from "./implPoint.ts";
+import { readdir, readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import type { ClauseFormatConfig } from '../../config.ts';
+import { IMPL_TOKEN_SOURCE, type ImplPoint, parseImplPoint } from './implPoint.ts';
 
 export interface ClauseInfo {
 	readonly id: string;
@@ -26,7 +22,7 @@ export interface ClauseInfo {
 }
 
 export const DEFAULT_CLAUSE_ID_PATTERN =
-	"K-(?:CORE|TARGET-[A-Z0-9]{3,8}|PROFILE-[A-Z0-9]{2,8})-[A-Z]+-\\d{3}";
+	'K-(?:CORE|TARGET-[A-Z0-9]{3,8}|PROFILE-[A-Z0-9]{2,8})-[A-Z]+-\\d{3}';
 
 async function walkMarkdownFiles(dir: string): Promise<string[]> {
 	const entries = await readdir(dir, { withFileTypes: true });
@@ -35,7 +31,7 @@ async function walkMarkdownFiles(dir: string): Promise<string[]> {
 		const path = join(dir, entry.name);
 		if (entry.isDirectory()) {
 			files.push(...(await walkMarkdownFiles(path)));
-		} else if (entry.isFile() && entry.name.endsWith(".md")) {
+		} else if (entry.isFile() && entry.name.endsWith('.md')) {
 			files.push(path);
 		}
 	}
@@ -48,15 +44,14 @@ export async function parseSpecClauses(
 ): Promise<ReadonlyArray<ClauseInfo>> {
 	const idPattern = formatConfig?.idPattern ?? DEFAULT_CLAUSE_ID_PATTERN;
 	const headingRe = new RegExp(
-		formatConfig?.headingPattern ??
-			`^##\\s+(?<id>${idPattern})\\s+(?<title>.+)$`,
+		formatConfig?.headingPattern ?? `^##\\s+(?<id>${idPattern})\\s+(?<title>.+)$`,
 	);
 	const attrRe = new RegExp(
 		formatConfig?.attrPattern ??
 			`^\\*\\*Attributes\\*\\*: \`status: (?<status>active|withdrawn)\` / \`since: (?<since>[\\d.]+)\` / \`kind: (?<kind>normative|informative)\` / \`impl: (?<impl>${IMPL_TOKEN_SOURCE})\`\\s*$`,
 	);
-	const normativeKinds = new Set(formatConfig?.normativeKinds ?? ["normative"]);
-	const activeStatuses = new Set(formatConfig?.activeStatuses ?? ["active"]);
+	const normativeKinds = new Set(formatConfig?.normativeKinds ?? ['normative']);
+	const activeStatuses = new Set(formatConfig?.activeStatuses ?? ['active']);
 
 	const files: string[] = [];
 	for (const root of specRoots) {
@@ -66,10 +61,10 @@ export async function parseSpecClauses(
 	const seenIds = new Map<string, string>();
 
 	for (const file of files) {
-		const lines = (await readFile(file, "utf8")).split("\n");
+		const lines = (await readFile(file, 'utf8')).split('\n');
 		let inFence = false;
 		for (let i = 0; i < lines.length; i++) {
-			if (lines[i]?.trimStart().startsWith("```")) {
+			if (lines[i]?.trimStart().startsWith('```')) {
 				inFence = !inFence;
 				continue;
 			}
@@ -104,10 +99,7 @@ export async function parseSpecClauses(
 			seenIds.set(id, file);
 
 			let attrLineIndex = i + 1;
-			while (
-				attrLineIndex < lines.length &&
-				lines[attrLineIndex]?.trim() === ""
-			) {
+			while (attrLineIndex < lines.length && lines[attrLineIndex]?.trim() === '') {
 				attrLineIndex++;
 			}
 			const attrMatch = lines[attrLineIndex]?.match(attrRe);
@@ -144,9 +136,7 @@ export async function parseSpecClauses(
 			}
 			const impl = parseImplPoint(implStr);
 			if (impl === undefined) {
-				throw new Error(
-					`${file}: Invalid impl format \`${implStr}\` for clause ${id}`,
-				);
+				throw new Error(`${file}: Invalid impl format \`${implStr}\` for clause ${id}`);
 			}
 
 			clauses.push({
@@ -166,7 +156,7 @@ export async function parseSpecClauses(
 
 	if (clauses.length === 0) {
 		throw new Error(
-			"No spec clauses found. Ensure the specRoot directories contain valid markdown files.",
+			'No spec clauses found. Ensure the specRoot directories contain valid markdown files.',
 		);
 	}
 
