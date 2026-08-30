@@ -46,11 +46,11 @@
 		"prepare": "pnpm build"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.5.5",
-		"@types/node": "^26.1.1",
+		"@biomejs/biome": "^2.5.11",
 		"tsdown": "^0.22.14",
-		"typescript": "^7.0.2",
-		"vitest": "^4.1.10"
+		"typescript": "^6.0.3",
+		"vitest": "^4.1.11",
+		"@types/node": "^26.1.1"
 	},
 	"author": "Rintaro Osumi <0sumirintaro@gmail.com>",
 	"license": "MIT",

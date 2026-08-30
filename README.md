@@ -2,7 +2,7 @@
 
 CLI toolkit for spec-driven project management and AI collaboration.
 
-Derived from [k4t4-framework](https://github.com/k4ta-framework) — works as a standalone tool.
+Derived from [k4t4-framework](https://github.com/k4t4-framework) — works as a standalone tool.
 
 ## Overview
 
